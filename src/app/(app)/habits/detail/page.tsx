@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Archive, Flame, Pencil, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -28,9 +28,9 @@ function formatTarget(target: HabitTarget | null | undefined, locale: Locale): s
   return target.unit ? `${target.value} ${target.unit}` : `${target.value}`;
 }
 
-export default function HabitDetailPage() {
-  const params = useParams<{ id: string }>();
-  const id = typeof params.id === "string" ? params.id : undefined;
+function HabitDetailInner() {
+  const searchParams = useSearchParams();
+  const id = searchParams.get("id") ?? undefined;
   const router = useRouter();
   const { t, locale } = useTranslation();
   const { show } = useToast();
@@ -182,5 +182,13 @@ function Stat({ label, value }: { label: string; value: string | number }) {
       <span className="text-lg font-bold tabular-nums text-text-primary">{value}</span>
       <span className="text-xs text-text-tertiary">{label}</span>
     </div>
+  );
+}
+
+export default function HabitDetailPage() {
+  return (
+    <Suspense fallback={<div className="flex flex-col gap-4 p-4"><Skeleton className="h-7 w-2/3" /><Skeleton className="h-40 w-full" /></div>}>
+      <HabitDetailInner />
+    </Suspense>
   );
 }

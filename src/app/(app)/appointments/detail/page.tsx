@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Clock, MapPin, Pencil, Repeat, Trash2, Users } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -30,9 +30,9 @@ function recurrenceLabel(rule: RecurrenceRule, t: (key: TranslationKey) => strin
   }
 }
 
-export default function AppointmentDetailPage() {
-  const params = useParams<{ id: string }>();
-  const id = params.id;
+function AppointmentDetailInner() {
+  const searchParams = useSearchParams();
+  const id = searchParams.get("id") ?? "";
   const router = useRouter();
   const { t, locale } = useTranslation();
   const appointment = useAppointment(id);
@@ -150,5 +150,13 @@ export default function AppointmentDetailPage() {
         confirmLabel={t("common.delete")}
       />
     </div>
+  );
+}
+
+export default function AppointmentDetailPage() {
+  return (
+    <Suspense fallback={<div className="flex flex-col gap-4 p-4"><Skeleton className="h-7 w-2/3" /><Skeleton className="h-40 w-full" /></div>}>
+      <AppointmentDetailInner />
+    </Suspense>
   );
 }

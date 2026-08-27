@@ -136,9 +136,9 @@ export function HoursView({ date, appointments, onSlotClick }: HoursViewProps) {
         })}
 
         {showNowLine && (
-          <div className="pointer-events-none absolute inset-x-0 z-20 flex items-center gap-1" style={{ top: nowTop }}>
-            <span className="size-2 shrink-0 rounded-full bg-danger" />
-            <div className="h-px flex-1 bg-danger" />
+          <div className="pointer-events-none absolute inset-x-0 z-20 flex items-center" style={{ top: nowTop }}>
+            <span className="-ms-1 size-2.5 shrink-0 rounded-full bg-accent-red ring-4 ring-[color:color-mix(in_srgb,var(--accent-red)_25%,transparent)]" />
+            <div className="h-0.5 flex-1 rounded-full bg-accent-red" />
           </div>
         )}
 
@@ -159,12 +159,12 @@ export function HoursView({ date, appointments, onSlotClick }: HoursViewProps) {
                 insetInlineStart: `calc(${column * widthPct}% + 2px)`,
                 width: `calc(${widthPct}% - 4px)`,
               }}
-              className="absolute z-10 overflow-hidden rounded-md border border-accent/30 bg-accent/15 px-1.5 py-1 text-start hover:bg-accent/25"
+              className="absolute z-10 overflow-hidden rounded-lg border border-accent/25 bg-accent-soft px-2 py-1 text-start shadow-xs transition-colors hover:bg-accent/20"
             >
-              <p className="truncate text-[11px] font-semibold leading-tight text-accent">
+              <p className="truncate text-[11px] font-bold leading-tight text-accent-fg">
                 {occurrence.appointment.title}
               </p>
-              <p className="truncate text-[10px] leading-tight text-accent/80">
+              <p className="truncate text-[10px] leading-tight text-accent-fg/75">
                 {formatTime(occurrence.start.toISOString(), locale)}
               </p>
             </Link>

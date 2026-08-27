@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Pencil, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -19,9 +19,9 @@ import { ROUTES } from "@/lib/constants/routes";
 import { formatFullDate, formatTime, formatDuration } from "@/lib/time/dateUtils";
 import { cn } from "@/lib/utils/cn";
 
-export default function TaskDetailPage() {
-  const params = useParams<{ id: string }>();
-  const id = typeof params.id === "string" ? params.id : undefined;
+function TaskDetailInner() {
+  const searchParams = useSearchParams();
+  const id = searchParams.get("id") ?? undefined;
   const router = useRouter();
   const { t, locale } = useTranslation();
   const { show } = useToast();
@@ -165,5 +165,13 @@ function DetailRow({ label, value }: { label: string; value: string }) {
       <span className="text-xs text-text-tertiary">{label}</span>
       <span className="text-sm font-medium text-text-primary">{value}</span>
     </div>
+  );
+}
+
+export default function TaskDetailPage() {
+  return (
+    <Suspense fallback={<div className="flex flex-col gap-4 p-4"><Skeleton className="h-7 w-2/3" /><Skeleton className="h-40 w-full" /></div>}>
+      <TaskDetailInner />
+    </Suspense>
   );
 }

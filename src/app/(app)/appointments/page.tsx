@@ -2,8 +2,8 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { IconButton } from "@/components/ui/IconButton";
+import { DirectionalIcon } from "@/components/ui/DirectionalIcon";
 import { Sheet } from "@/components/ui/Sheet";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ViewSwitcher, type AppointmentsView } from "@/components/appointments/ViewSwitcher";
@@ -24,7 +24,7 @@ interface AddPrefill {
 }
 
 function AppointmentsPageInner() {
-  const { t, locale, dir } = useTranslation();
+  const { t, locale } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const appointments = useAppointments();
@@ -74,8 +74,6 @@ function AppointmentsPageInner() {
     openAdd(date, time);
   }
 
-  const ChevronPrev = dir === "rtl" ? ChevronRight : ChevronLeft;
-  const ChevronNext = dir === "rtl" ? ChevronLeft : ChevronRight;
   const effectivePrefillDate = addPrefill?.date ?? selectedDate;
 
   return (
@@ -84,7 +82,7 @@ function AppointmentsPageInner() {
         <ViewSwitcher value={view} onChange={setView} />
         <div className="flex items-center justify-between gap-2">
           <IconButton
-            icon={<ChevronPrev className="size-4" />}
+            icon={<DirectionalIcon direction="back" className="size-4" />}
             label={t("appointments.previousPeriod")}
             variant="surface"
             onClick={goPrev}
@@ -94,7 +92,7 @@ function AppointmentsPageInner() {
             <span className="text-xs text-text-tertiary">{formatFullDate(selectedDate, locale)}</span>
           </div>
           <IconButton
-            icon={<ChevronNext className="size-4" />}
+            icon={<DirectionalIcon direction="forward" className="size-4" />}
             label={t("appointments.nextPeriod")}
             variant="surface"
             onClick={goNext}
@@ -103,7 +101,7 @@ function AppointmentsPageInner() {
         <button
           type="button"
           onClick={goToday}
-          className="self-center rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-text-secondary transition-colors duration-150 hover:bg-surface-hover"
+          className="self-center rounded-full bg-accent-soft px-3.5 py-1.5 text-xs font-bold text-accent-fg transition-colors duration-150 hover:brightness-95"
         >
           {t("common.today")}
         </button>
