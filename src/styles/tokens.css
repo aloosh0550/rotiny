@@ -1,0 +1,73 @@
+/* Routini design tokens — raw values live here, Tailwind theme mapping lives in globals.css */
+
+:root,
+.dark {
+  --bg: #0b0f1a;
+  --bg-elevated: #121826;
+  --surface: #161d2e;
+  --surface-hover: #1d2536;
+  --border: #262f45;
+  --border-strong: #33405c;
+
+  --text-primary: #f2f4f8;
+  --text-secondary: #9aa5b8;
+  --text-tertiary: #6b7488;
+  --text-on-accent: #ffffff;
+
+  --accent-purple: #8b5cf6;
+  --accent-purple-strong: #7c3aed;
+  --accent-blue: #4f8cff;
+
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+
+  --priority-important: #f87171;
+  --priority-normal: #fbbf24;
+  --priority-later: #94a3b8;
+
+  --shadow-color: 0 0% 0%;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.24);
+  --shadow-md: 0 4px 16px rgb(0 0 0 / 0.32);
+  --shadow-lg: 0 12px 32px rgb(0 0 0 / 0.4);
+  --shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 1px 2px rgb(0 0 0 / 0.3), 0 10px 24px -12px rgb(0 0 0 / 0.55);
+  --shadow-card-hover: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 2px 4px rgb(0 0 0 / 0.32), 0 16px 32px -14px rgb(0 0 0 / 0.6);
+  --shadow-glow-accent: 0 0 24px rgb(139 92 246 / 0.25);
+
+  color-scheme: dark;
+}
+
+.light {
+  --bg: #f7f8fc;
+  --bg-elevated: #ffffff;
+  --surface: #ffffff;
+  --surface-hover: #f1f2f8;
+  --border: #e4e7f0;
+  --border-strong: #d3d8e6;
+
+  --text-primary: #101423;
+  --text-secondary: #545b6e;
+  --text-tertiary: #8890a3;
+  --text-on-accent: #ffffff;
+
+  --accent-purple: #7c3aed;
+  --accent-purple-strong: #6d28d9;
+  --accent-blue: #3b6fe0;
+
+  --success: #10b981;
+  --warning: #d97706;
+  --danger: #dc2626;
+
+  --priority-important: #dc2626;
+  --priority-normal: #d97706;
+  --priority-later: #8890a3;
+
+  --shadow-sm: 0 1px 2px rgb(16 20 35 / 0.06);
+  --shadow-md: 0 4px 16px rgb(16 20 35 / 0.08);
+  --shadow-lg: 0 12px 32px rgb(16 20 35 / 0.12);
+  --shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.7), 0 1px 2px rgb(16 20 35 / 0.04), 0 10px 24px -14px rgb(16 20 35 / 0.18);
+  --shadow-card-hover: inset 0 1px 0 rgb(255 255 255 / 0.8), 0 2px 4px rgb(16 20 35 / 0.05), 0 16px 32px -14px rgb(16 20 35 / 0.22);
+  --shadow-glow-accent: 0 0 20px rgb(124 58 237 / 0.12);
+
+  color-scheme: light;
+}
