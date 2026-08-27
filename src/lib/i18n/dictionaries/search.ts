@@ -1,0 +1,28 @@
+export const search = {
+  ar: {
+    placeholder: "ابحث عن أي شيء... مثلاً: أحمد",
+    sectionAppointments: "المواعيد",
+    sectionTasks: "المهام",
+    sectionHabits: "العادات",
+    sectionAdhkar: "الأذكار",
+    noResults: "لا توجد نتائج لبحثك",
+    noResultsSubtitle: "جرّب كلمات أخرى",
+    understood: "فهمت",
+    clearFilter: "مسح",
+    startTyping: "ابدأ الكتابة للبحث في مواعيدك ومهامك وعاداتك وأذكارك",
+    recentSearches: "عمليات بحث سابقة",
+  },
+  en: {
+    placeholder: "Search for anything... e.g. Ahmad",
+    sectionAppointments: "Appointments",
+    sectionTasks: "Tasks",
+    sectionHabits: "Habits",
+    sectionAdhkar: "Adhkar",
+    noResults: "No results found",
+    noResultsSubtitle: "Try different keywords",
+    understood: "Got it",
+    clearFilter: "Clear",
+    startTyping: "Start typing to search your appointments, tasks, habits, and adhkar",
+    recentSearches: "Recent searches",
+  },
+};

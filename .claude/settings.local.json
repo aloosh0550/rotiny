@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm -v)",
+      "Bash(npx --yes create-next-app@latest . --typescript --tailwind --app --src-dir --import-alias \"@/*\" --eslint --use-npm --no-turbopack)",
+      "Bash(mv README.md /tmp/rotiny-readme-orig.md && npx --yes create-next-app@latest . --typescript --tailwind --app --src-dir --import-alias \"@/*\" --eslint --use-npm --no-turbopack 2>&1 | tail -80)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(npm list *)",
+      "Read(//usr/local/bin/**)",
+      "Read(//home/codespace/.local/bin/**)",
+      "Bash(npx --yes playwright --version)",
+      "Bash(find / -maxdepth 4 -iname \"*chromium-cli*\")",
+      "Bash(npm ls *)",
+      "Bash(npx playwright *)"
+    ],
+    "additionalDirectories": [
+      "/tmp"
+    ]
+  }
+}
