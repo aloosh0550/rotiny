@@ -1,36 +1,85 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<div dir="rtl">
 
-## Getting Started
+# روتيني · Routini
 
-First, run the development server:
+**منظّم حياتك اليومية** — مواعيدك، مهامك، عاداتك، وأذكارك في مكان واحد.
+
+تطبيق ويب تقدّمي (PWA) يعمل دون اتصال بالإنترنت، بواجهة عربية كاملة تدعم الاتجاه من اليمين إلى اليسار، ويخزّن بياناتك محليًا على جهازك.
+
+</div>
+
+---
+
+<div dir="rtl">
+
+## المميزات
+
+| الوحدة | الوصف |
+| --- | --- |
+| **المهام** | إضافة سريعة، أولويات، مواعيد استحقاق، وحالات إنجاز. |
+| **العادات** | تتبّع يومي، سلاسل الإنجاز (Streaks)، وشبكة سجلّ تاريخي. |
+| **المواعيد** | عروض يومية وأسبوعية وبالساعات، تكرار، وتنبيه للتعارضات. |
+| **الأذكار** | تصنيفات، عدّاد لكل ذِكر، ومتابعة الورد اليومي. |
+| **البحث الذكي** | بحث موحّد عبر كل الوحدات مع فلاتر بلغة طبيعية عربية. |
+| **الإحصائيات** | ملخّص نهاية اليوم، مؤشرات التقدّم، ورسوم بيانية أسبوعية. |
+
+### إضافيًا
+
+- **يعمل دون اتصال** عبر Service Worker وتخزين محلي بـ IndexedDB.
+- **قابل للتثبيت** على الهاتف وسطح المكتب كتطبيق مستقل.
+- **معالج لغة طبيعية** مبني على قواعد لاستخراج التاريخ والوقت والأولوية والتكرار من نصّ عربي حرّ.
+- **الخصوصية أولًا** — لا يغادر أي بيان جهازك؛ طبقة المزامنة اختيارية وقابلة للاستبدال.
+- دعم كامل للعربية والإنجليزية مع تبديل الاتجاه (RTL/LTR).
+
+## التقنيات
+
+- **الإطار:** Next.js 16 (App Router) · React 19 · TypeScript
+- **التنسيق:** Tailwind CSS 4 · Framer Motion
+- **التخزين:** Dexie (IndexedDB) مع نمط المستودعات (Repository Pattern)
+- **التحقق:** Zod
+- **الاختبارات:** Vitest
+
+## البدء
 
 ```bash
+# تثبيت الاعتماديات
+npm install
+
+# تشغيل بيئة التطوير على http://localhost:3000
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## الأوامر
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| الأمر | الوظيفة |
+| --- | --- |
+| `npm run dev` | تشغيل خادم التطوير. |
+| `npm run build` | بناء نسخة الإنتاج. |
+| `npm run start` | تشغيل نسخة الإنتاج. |
+| `npm run lint` | فحص جودة الكود بـ ESLint. |
+| `npm run test` | تشغيل الاختبارات بـ Vitest. |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## بنية المشروع
 
-## Learn More
+```
+src/
+├── app/                نقاط الدخول والصفحات (App Router)
+│   ├── (app)/          صفحات التطبيق: tasks, habits, appointments, adhkar, search, more
+│   └── (onboarding)/   شاشة التعريف الأولى
+├── components/          مكوّنات الواجهة مصنّفة حسب الوحدة + مكتبة ui/ مشتركة
+├── lib/
+│   ├── db/             مخطّط Dexie والمستودعات وبيانات البذر
+│   ├── hooks/          خطّافات React للوصول للبيانات
+│   ├── i18n/           قواميس الترجمة (ar/en)
+│   ├── services/       nlp · calendar · notifications · sync · search
+│   ├── time/           حسابات التكرار والسلاسل والتواريخ
+│   └── types/          أنواع TypeScript ومخطّطات Zod
+└── styles/             رموز التصميم (Design Tokens)
+tests/                   اختبارات الوحدة
+```
 
-To learn more about Next.js, take a look at the following resources:
+## الترخيص
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+مشروع خاص — جميع الحقوق محفوظة.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+</div>
