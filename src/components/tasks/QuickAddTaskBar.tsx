@@ -67,7 +67,7 @@ export function QuickAddTaskBar({ autoFocus, onAutoFocused }: QuickAddTaskBarPro
           descendants, which would trap Sheet's fixed overlay inside this small bar
           instead of the viewport — so Sheet is rendered as a sibling below, not nested
           inside this div. */}
-      <div className="sticky top-14 z-20 flex flex-col gap-2 border-b border-border bg-bg/95 px-4 py-3 backdrop-blur">
+      <div className="sticky top-14 z-20 flex flex-col gap-2 bg-bg/90 px-4 py-3 backdrop-blur-lg md:top-0 md:px-0">
         <form onSubmit={(e) => void handleSubmit(e)} className="flex items-center gap-2">
           <Input
             ref={inputRef}

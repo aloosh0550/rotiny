@@ -3,6 +3,7 @@
 import { Download } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Logo } from "@/components/ui/Logo";
 import { SubpageHeader } from "@/components/more/SubpageHeader";
 import { useInstallPrompt } from "@/lib/hooks/useInstallPrompt";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
@@ -20,12 +21,7 @@ export default function AboutSettingsPage() {
       <SubpageHeader title={t("settings.aboutTitle")} backHref={ROUTES.settings} />
       <section className="px-4">
         <Card className="flex flex-col items-center gap-3 py-8 text-center">
-          <div
-            className="flex size-14 items-center justify-center rounded-2xl"
-            style={{ background: "linear-gradient(135deg, #8b5cf6 0%, #4f8cff 100%)" }}
-          >
-            <span className="text-xl font-bold text-white">ر</span>
-          </div>
+          <Logo size={60} className="shadow-glow-accent" />
           <div>
             <p className="text-lg font-bold text-text-primary">{t("common.appName")}</p>
             <p className="text-xs text-text-tertiary">

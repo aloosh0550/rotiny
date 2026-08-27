@@ -25,19 +25,19 @@ export function WeeklyBarChart({ data }: { data: WeeklyBarChartDatum[] }) {
           >
             {d.value}
           </span>
-          <div className="flex h-20 w-full items-end overflow-hidden rounded-md bg-surface-hover">
+          <div className="flex h-24 w-full items-end overflow-hidden rounded-lg bg-surface-sunken">
             <div
               className={cn(
-                "w-full rounded-md transition-[height] duration-300",
-                d.isToday ? "bg-accent-purple" : "bg-accent-purple/50",
+                "w-full rounded-lg transition-[height] duration-500",
+                d.isToday ? "bg-accent" : "bg-accent/45",
               )}
-              style={{ height: `${(d.value / max) * 100}%` }}
+              style={{ height: `${Math.max((d.value / max) * 100, d.value > 0 ? 8 : 0)}%` }}
             />
           </div>
           <span
             className={cn(
               "text-[11px]",
-              d.isToday ? "font-semibold text-accent-purple" : "text-text-tertiary",
+              d.isToday ? "font-semibold text-accent" : "text-text-tertiary",
             )}
           >
             {d.label}

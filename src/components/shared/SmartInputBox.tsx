@@ -158,7 +158,7 @@ export function SmartInputBox({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-2 rounded-lg bg-accent-purple/10 px-3 py-2 text-accent-purple">
+      <div className="flex items-center gap-2 rounded-lg bg-accent/10 px-3 py-2 text-accent">
         <Icon className="size-4 shrink-0" />
         <span className="text-xs font-medium">&ldquo;{parsed.rawText}&rdquo;</span>
       </div>

@@ -1,5 +1,8 @@
 "use client";
 
+import { motion } from "framer-motion";
+import { useId } from "react";
+import { SPRING } from "@/lib/motion";
 import { cn } from "@/lib/utils/cn";
 
 export interface TabItem {
@@ -7,6 +10,10 @@ export interface TabItem {
   label: string;
 }
 
+/**
+ * Sliding segmented control. Exported as `Tabs` for back-compat — callers
+ * (ViewSwitcher, CategoryTabs) keep the same props.
+ */
 export function Tabs({
   items,
   value,
@@ -18,11 +25,12 @@ export function Tabs({
   onChange: (value: string) => void;
   className?: string;
 }) {
+  const groupId = useId();
   return (
     <div
       role="tablist"
       className={cn(
-        "flex gap-1 overflow-x-auto rounded-lg bg-surface p-1 border border-border no-scrollbar",
+        "flex gap-1 overflow-x-auto rounded-full border border-border bg-surface-sunken p-1 no-scrollbar",
         className,
       )}
     >
@@ -36,13 +44,18 @@ export function Tabs({
             aria-selected={active}
             onClick={() => onChange(item.value)}
             className={cn(
-              "flex-1 shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-150",
-              active
-                ? "bg-accent-purple text-text-on-accent shadow-sm"
-                : "text-text-secondary hover:text-text-primary",
+              "relative flex-1 shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors duration-150",
+              active ? "text-accent-ink" : "text-text-secondary hover:text-text-primary",
             )}
           >
-            {item.label}
+            {active && (
+              <motion.span
+                layoutId={`tab-indicator-${groupId}`}
+                transition={SPRING.soft}
+                className="absolute inset-0 -z-0 rounded-full bg-accent shadow-sm"
+              />
+            )}
+            <span className="relative z-10">{item.label}</span>
           </button>
         );
       })}

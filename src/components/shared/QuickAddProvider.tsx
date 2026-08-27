@@ -101,7 +101,7 @@ export function QuickAddProvider({ children }: { children: ReactNode }) {
                   }}
                   className="flex items-center gap-3 rounded-lg border border-border bg-surface px-4 py-3 text-start transition-colors duration-150 hover:bg-surface-hover"
                 >
-                  <Icon className="size-5 text-accent-purple" />
+                  <Icon className="size-5 text-accent" />
                   <span className="text-sm font-medium text-text-primary">{opt.label}</span>
                 </button>
               );

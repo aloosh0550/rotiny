@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search } from "lucide-react";
+import { MoreHorizontal, Search } from "lucide-react";
 import { IconButton } from "@/components/ui/IconButton";
+import { Logo } from "@/components/ui/Logo";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
 import type { TranslationKey } from "@/lib/i18n/paths";
 import { ROUTES } from "@/lib/constants/routes";
@@ -28,25 +29,43 @@ export function TopBar() {
   const pathname = usePathname();
   const { t } = useTranslation();
   const title = getTitle(pathname, t);
+  const isHome = pathname === ROUTES.home;
   const onSearchPage = pathname.startsWith(ROUTES.search);
-  // Home already opens with its own greeting heading, and the sidebar already carries the
-  // brand mark on desktop — showing "روتيني" again here would just be noise there.
-  const hideOnDesktop = pathname === ROUTES.home;
+  const onMorePage = pathname.startsWith(ROUTES.more);
 
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-border bg-bg/85 px-4 backdrop-blur",
-        "md:static md:mx-auto md:h-auto md:w-full md:max-w-4xl md:border-none md:bg-transparent md:px-8 md:pb-0 md:pt-6 md:backdrop-blur-none",
-        hideOnDesktop && "md:hidden",
+        "sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border bg-bg/80 px-4 backdrop-blur-lg",
+        "md:hidden",
       )}
     >
-      <h1 className="text-lg font-semibold text-text-primary md:text-2xl md:font-bold">{title}</h1>
-      {!onSearchPage && (
-        <Link href={ROUTES.search} className="md:hidden">
-          <IconButton icon={<Search className="size-5" />} label={t("nav.search")} variant="ghost" />
-        </Link>
-      )}
+      <div className="flex min-w-0 items-center gap-2.5">
+        {isHome ? (
+          <>
+            <Logo size={30} />
+            <span className="text-lg font-bold text-text-primary">{title}</span>
+          </>
+        ) : (
+          <h1 className="truncate text-lg font-bold text-text-primary">{title}</h1>
+        )}
+      </div>
+      <div className="flex shrink-0 items-center gap-0.5">
+        {!onSearchPage && (
+          <Link href={ROUTES.search} aria-label={t("nav.search")}>
+            <IconButton icon={<Search className="size-5" />} label={t("nav.search")} variant="ghost" />
+          </Link>
+        )}
+        {!onMorePage && (
+          <Link href={ROUTES.more} aria-label={t("nav.more")}>
+            <IconButton
+              icon={<MoreHorizontal className="size-5" />}
+              label={t("nav.more")}
+              variant="ghost"
+            />
+          </Link>
+        )}
+      </div>
     </header>
   );
 }

@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Sparkles } from "lucide-react";
+import { Sun, Moon, Sunset } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Count } from "@/components/ui/Count";
+import { IconTile } from "@/components/ui/IconTile";
+import { DirectionalIcon } from "@/components/ui/DirectionalIcon";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
 import { useDhikrCategories, useAllDhikr, useDhikrProgressForDate } from "@/lib/hooks/useAdhkar";
 import { useTimeOfDay } from "@/lib/hooks/useTimeOfDay";
@@ -25,21 +27,23 @@ export function AdhkarQuickAccess() {
   ).length;
 
   if (!category) return null;
+  const Icon = relevantKind === "morning" ? Sun : relevantKind === "sleep" ? Moon : Sunset;
 
   return (
-    <section className="flex flex-col gap-2 px-4">
-      <h3 className="text-sm font-semibold text-text-secondary">{t("home.adhkarQuickAccess")}</h3>
+    <section className="flex flex-col gap-2 px-4 md:px-0">
+      <h3 className="text-sm font-bold text-text-secondary">{t("home.adhkarQuickAccess")}</h3>
       <Link href={ROUTES.adhkar}>
         <Card interactive className="flex items-center gap-3">
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-accent-blue/10 text-accent-blue">
-            <Sparkles className="size-5" />
-          </div>
-          <div className="flex-1 min-w-0">
+          <IconTile color="violet" size="lg">
+            <Icon />
+          </IconTile>
+          <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-text-primary">{category.title}</p>
             <p className="text-xs text-text-tertiary">
               <Count value={completedCount} total={items.length} />
             </p>
           </div>
+          <DirectionalIcon className="size-4 text-text-tertiary" />
         </Card>
       </Link>
     </section>

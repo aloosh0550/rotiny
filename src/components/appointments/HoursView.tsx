@@ -159,12 +159,12 @@ export function HoursView({ date, appointments, onSlotClick }: HoursViewProps) {
                 insetInlineStart: `calc(${column * widthPct}% + 2px)`,
                 width: `calc(${widthPct}% - 4px)`,
               }}
-              className="absolute z-10 overflow-hidden rounded-md border border-accent-purple/30 bg-accent-purple/15 px-1.5 py-1 text-start hover:bg-accent-purple/25"
+              className="absolute z-10 overflow-hidden rounded-md border border-accent/30 bg-accent/15 px-1.5 py-1 text-start hover:bg-accent/25"
             >
-              <p className="truncate text-[11px] font-semibold leading-tight text-accent-purple">
+              <p className="truncate text-[11px] font-semibold leading-tight text-accent">
                 {occurrence.appointment.title}
               </p>
-              <p className="truncate text-[10px] leading-tight text-accent-purple/80">
+              <p className="truncate text-[10px] leading-tight text-accent/80">
                 {formatTime(occurrence.start.toISOString(), locale)}
               </p>
             </Link>

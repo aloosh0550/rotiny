@@ -139,7 +139,7 @@ export default function StatisticsPage() {
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-text-secondary">{t("statistics.habitConsistency")}</h3>
           {habitStats.length > 0 && (
-            <span className="text-xs font-semibold text-accent-purple">
+            <span className="text-xs font-semibold text-accent">
               {Math.round(avgConsistency * 100)}%
             </span>
           )}

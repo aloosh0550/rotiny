@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { IconButton } from "@/components/ui/IconButton";
+import { DirectionalIcon } from "@/components/ui/DirectionalIcon";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
 
 /**
@@ -11,15 +11,18 @@ import { useTranslation } from "@/lib/i18n/I18nProvider";
  * with a back link and its specific title.
  */
 export function SubpageHeader({ title, backHref }: { title: string; backHref: string }) {
-  const { t, dir } = useTranslation();
-  const BackIcon = dir === "rtl" ? ChevronRight : ChevronLeft;
+  const { t } = useTranslation();
 
   return (
     <div className="flex items-center gap-1 px-2 pt-2">
       <Link href={backHref}>
-        <IconButton icon={<BackIcon className="size-5" />} label={t("common.back")} variant="ghost" />
+        <IconButton
+          icon={<DirectionalIcon direction="back" className="size-5" />}
+          label={t("common.back")}
+          variant="ghost"
+        />
       </Link>
-      <h2 className="text-base font-semibold text-text-primary">{title}</h2>
+      <h2 className="text-lg font-bold text-text-primary">{title}</h2>
     </div>
   );
 }

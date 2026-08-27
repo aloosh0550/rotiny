@@ -19,11 +19,13 @@ export default function HomePage() {
       <GreetingHeader timeOfDay={timeOfDay} />
       <SmartSuggestionBanner />
       <TodayOverviewCard />
-      {isEvening && <EndOfDaySummaryCard />}
-      <UpcomingAppointmentCard />
-      <ImportantTaskCard />
-      <HabitsProgressStrip />
-      <AdhkarQuickAccess />
+      <div className="flex flex-col gap-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-4">
+        {isEvening && <EndOfDaySummaryCard />}
+        <UpcomingAppointmentCard />
+        <ImportantTaskCard />
+        <HabitsProgressStrip />
+        <AdhkarQuickAccess />
+      </div>
     </div>
   );
 }

@@ -38,14 +38,14 @@ export function SearchResultsSection(props: SearchResultsSectionProps) {
 
   return (
     <section className="flex flex-col gap-2">
-      <h3 className="px-1 text-sm font-semibold text-text-secondary">{props.title}</h3>
+      <h3 className="px-1 text-sm font-bold text-text-secondary">{props.title}</h3>
       <div className="flex flex-col gap-2">
         {props.entity === "appointment" &&
           props.items.map((appointment) => (
             <SearchResultRow
               key={appointment.id}
               href={ROUTES.appointment(appointment.id)}
-              icon={<CalendarDays className="size-4" />}
+              icon={<CalendarDays className="size-4" />} color="indigo"
               title={appointment.title}
               subtitle={`${formatDayLabel(new Date(appointment.startAt), locale)} · ${formatTime(appointment.startAt, locale)}`}
             />
@@ -56,7 +56,7 @@ export function SearchResultsSection(props: SearchResultsSectionProps) {
             <SearchResultRow
               key={task.id}
               href={ROUTES.task(task.id)}
-              icon={<ListChecks className="size-4" />}
+              icon={<ListChecks className="size-4" />} color="amber"
               title={task.title}
               subtitle={
                 task.dueAt
@@ -72,7 +72,7 @@ export function SearchResultsSection(props: SearchResultsSectionProps) {
             <SearchResultRow
               key={habit.id}
               href={ROUTES.habit(habit.id)}
-              icon={<Repeat className="size-4" />}
+              icon={<Repeat className="size-4" />} color="green"
               title={habit.title}
               subtitle={habitRecurrenceLabel(habit, t)}
             />
@@ -83,7 +83,7 @@ export function SearchResultsSection(props: SearchResultsSectionProps) {
             <SearchResultRow
               key={dhikr.id}
               href={ROUTES.adhkar}
-              icon={<Sparkles className="size-4" />}
+              icon={<Sparkles className="size-4" />} color="violet"
               title={dhikr.text}
               subtitle={props.categories?.find((c) => c.id === dhikr.categoryId)?.title}
             />

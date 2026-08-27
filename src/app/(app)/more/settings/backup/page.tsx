@@ -174,7 +174,7 @@ export default function BackupSettingsPage() {
 
       <section className="flex flex-col gap-3 px-4">
         <Card className="flex items-center gap-3">
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-accent-purple/10 text-accent-purple">
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
             <Download className="size-5" />
           </div>
           <div className="min-w-0 flex-1">

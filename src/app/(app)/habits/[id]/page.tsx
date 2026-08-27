@@ -128,7 +128,7 @@ export default function HabitDetailPage() {
         </div>
       </div>
 
-      <Card featured padding="lg" className="flex items-center gap-5">
+      <Card accent padding="lg" className="flex items-center gap-5">
         <div className="flex shrink-0 flex-col items-center gap-1">
           <div className="flex items-center gap-1.5 text-warning">
             <Flame

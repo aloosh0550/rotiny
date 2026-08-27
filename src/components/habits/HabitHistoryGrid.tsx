@@ -33,20 +33,20 @@ export function HabitHistoryGrid({ completions }: HabitHistoryGridProps) {
     // calendars), so this is deliberately isolated as LTR even under an RTL locale.
     <div
       dir="ltr"
-      className="grid w-max gap-[3px]"
-      style={{ gridTemplateRows: "repeat(7, 12px)", gridAutoFlow: "column" }}
+      className="grid w-max gap-1"
+      style={{ gridTemplateRows: "repeat(7, 13px)", gridAutoFlow: "column" }}
     >
       {cells.map((cell) => (
         <div
           key={cell.key}
           title={cell.future ? undefined : formatMonthDay(cell.date, locale)}
           className={cn(
-            "size-3 rounded-[3px]",
+            "size-[13px] rounded-[4px]",
             cell.future
-              ? ""
+              ? "bg-transparent"
               : cell.done
-                ? "bg-accent-purple"
-                : "border border-border",
+                ? "bg-accent-green"
+                : "bg-surface-sunken",
           )}
         />
       ))}
