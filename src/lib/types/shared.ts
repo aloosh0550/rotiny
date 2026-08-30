@@ -36,4 +36,4 @@ export interface Reminder {
   method: ReminderMethod;
 }
 
-export type CalendarProviderId = "local" | "google" | "apple" | "microsoft";
+export type CalendarProviderId = "local" | "device" | "google" | "apple" | "microsoft";

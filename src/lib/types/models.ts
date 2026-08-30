@@ -21,7 +21,19 @@ export interface Appointment {
   participants?: string[];
   color?: string;
   calendarProviderId: CalendarProviderId;
+  /** Device calendar event id (when mirrored to the phone calendar). */
   externalId?: string | null;
+  /** Which device calendar the mirrored event lives in. */
+  deviceCalendarId?: string | null;
+  sync: SyncMeta;
+}
+
+export interface TaskCategory {
+  id: ID;
+  name: string;
+  /** Extended-palette key: "blue" | "green" | "amber" | "cyan" | "violet" | ... */
+  color: string;
+  order: number;
   sync: SyncMeta;
 }
 
@@ -41,6 +53,10 @@ export interface Task {
   reminders: Reminder[];
   linkedAppointmentId?: ID | null;
   originTaskId?: ID | null;
+  /** Optional user category (see TaskCategory). */
+  categoryId?: ID | null;
+  /** "Most important" — surfaced first on Home, independent of priority. */
+  pinned?: boolean;
   sync: SyncMeta;
 }
 
@@ -77,6 +93,7 @@ export type DhikrCategoryKind =
   | "evening"
   | "after_prayer"
   | "sleep"
+  | "wake"
   | "custom";
 
 export interface DhikrCategory {

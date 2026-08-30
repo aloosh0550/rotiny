@@ -7,6 +7,16 @@ import { habits } from "./habits";
 import { adhkar } from "./adhkar";
 import { search } from "./search";
 import { more, statistics, settings } from "./more";
+import {
+  reminders,
+  recurrence,
+  plan,
+  summary,
+  prayer,
+  calendarSync,
+  notificationsExtra,
+  smartAdd,
+} from "./shared";
 
 export const ar = {
   common: common.ar,
@@ -23,6 +33,14 @@ export const ar = {
   more: more.ar,
   statistics: statistics.ar,
   settings: settings.ar,
+  reminders: reminders.ar,
+  recurrence: recurrence.ar,
+  plan: plan.ar,
+  summary: summary.ar,
+  prayer: prayer.ar,
+  calendarSync: calendarSync.ar,
+  notificationsExtra: notificationsExtra.ar,
+  smartAdd: smartAdd.ar,
 };
 
 export const en: typeof ar = {
@@ -40,6 +58,14 @@ export const en: typeof ar = {
   more: more.en,
   statistics: statistics.en,
   settings: settings.en,
+  reminders: reminders.en,
+  recurrence: recurrence.en,
+  plan: plan.en,
+  summary: summary.en,
+  prayer: prayer.en,
+  calendarSync: calendarSync.en,
+  notificationsExtra: notificationsExtra.en,
+  smartAdd: smartAdd.en,
 };
 
 export type Dictionary = typeof ar;

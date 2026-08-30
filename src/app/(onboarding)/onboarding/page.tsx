@@ -11,7 +11,7 @@ import { useTranslation } from "@/lib/i18n/I18nProvider";
 import { settingsRepository } from "@/lib/db/repositories";
 import { seedIfNeeded, CURRENT_SEED_VERSION } from "@/lib/db/seed";
 import { ROUTES } from "@/lib/constants/routes";
-import type { ThemeMode } from "@/lib/types";
+import { DEFAULT_NOTIFICATION_PREFERENCES, type ThemeMode } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
 
 type Step = "language" | "theme" | "notifications";
@@ -43,15 +43,8 @@ export default function OnboardingPage() {
       onboardingCompleted: true,
       seedVersion: CURRENT_SEED_VERSION,
       notifications: {
+        ...DEFAULT_NOTIFICATION_PREFERENCES,
         enabled: notificationsWanted && notifStatus !== "denied",
-        appointmentReminders: true,
-        taskDueReminders: true,
-        habitReminders: true,
-        freeTimeSuggestions: true,
-        overdueTaskAlerts: true,
-        dailySummary: true,
-        quietHoursStart: "22:00",
-        quietHoursEnd: "07:00",
       },
     });
     router.replace(ROUTES.home);

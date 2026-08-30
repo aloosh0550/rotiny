@@ -19,6 +19,7 @@ const BACKUP_VERSION = 1;
 const ALL_TABLES = [
   db.appointments,
   db.tasks,
+  db.taskCategories,
   db.habits,
   db.habitCompletions,
   db.dhikrCategories,
@@ -43,6 +44,7 @@ export default function BackupSettingsPage() {
     const [
       appointments,
       tasks,
+      taskCategories,
       habits,
       habitCompletions,
       dhikrCategories,
@@ -53,6 +55,7 @@ export default function BackupSettingsPage() {
     ] = await Promise.all([
       db.appointments.toArray(),
       db.tasks.toArray(),
+      db.taskCategories.toArray(),
       db.habits.toArray(),
       db.habitCompletions.toArray(),
       db.dhikrCategories.toArray(),
@@ -68,6 +71,7 @@ export default function BackupSettingsPage() {
       data: {
         appointments,
         tasks,
+        taskCategories,
         habits,
         habitCompletions,
         dhikrCategories,
@@ -103,7 +107,7 @@ export default function BackupSettingsPage() {
           show(t("settings.backupImportError"), { tone: "error" });
           return;
         }
-        setPendingImport(result.data);
+        setPendingImport(result.data as unknown as BackupData);
         setImportDialogOpen(true);
       } catch {
         show(t("settings.backupImportError"), { tone: "error" });
@@ -121,6 +125,7 @@ export default function BackupSettingsPage() {
       await db.transaction("rw", ALL_TABLES, async () => {
         await db.appointments.clear();
         await db.tasks.clear();
+        await db.taskCategories.clear();
         await db.habits.clear();
         await db.habitCompletions.clear();
         await db.dhikrCategories.clear();
@@ -131,6 +136,7 @@ export default function BackupSettingsPage() {
 
         if (data.appointments.length) await db.appointments.bulkAdd(data.appointments);
         if (data.tasks.length) await db.tasks.bulkAdd(data.tasks);
+        if (data.taskCategories?.length) await db.taskCategories.bulkAdd(data.taskCategories);
         if (data.habits.length) await db.habits.bulkAdd(data.habits);
         if (data.habitCompletions.length) await db.habitCompletions.bulkAdd(data.habitCompletions);
         if (data.dhikrCategories.length) await db.dhikrCategories.bulkAdd(data.dhikrCategories);
@@ -154,6 +160,7 @@ export default function BackupSettingsPage() {
       await db.transaction("rw", ALL_TABLES, async () => {
         await db.appointments.clear();
         await db.tasks.clear();
+        await db.taskCategories.clear();
         await db.habits.clear();
         await db.habitCompletions.clear();
         await db.dhikrCategories.clear();

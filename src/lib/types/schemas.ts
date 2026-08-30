@@ -33,7 +33,7 @@ const reminderSchema = z.object({
   method: z.enum(["push", "inapp"]),
 });
 
-const calendarProviderSchema = z.enum(["local", "google", "apple", "microsoft"]);
+const calendarProviderSchema = z.enum(["local", "device", "google", "apple", "microsoft"]);
 
 export const appointmentSchema = z.object({
   id: idSchema,
@@ -50,6 +50,7 @@ export const appointmentSchema = z.object({
   color: z.string().optional(),
   calendarProviderId: calendarProviderSchema,
   externalId: z.string().nullable().optional(),
+  deviceCalendarId: z.string().nullable().optional(),
   sync: syncMetaSchema,
 });
 
@@ -67,6 +68,16 @@ export const taskSchema = z.object({
   reminders: z.array(reminderSchema),
   linkedAppointmentId: idSchema.nullable().optional(),
   originTaskId: idSchema.nullable().optional(),
+  categoryId: idSchema.nullable().optional(),
+  pinned: z.boolean().optional(),
+  sync: syncMetaSchema,
+});
+
+export const taskCategorySchema = z.object({
+  id: idSchema,
+  name: z.string(),
+  color: z.string(),
+  order: z.number(),
   sync: syncMetaSchema,
 });
 
@@ -100,7 +111,7 @@ export const habitCompletionSchema = z.object({
 
 export const dhikrCategorySchema = z.object({
   id: idSchema,
-  kind: z.enum(["morning", "evening", "after_prayer", "sleep", "custom"]),
+  kind: z.enum(["morning", "evening", "after_prayer", "sleep", "wake", "custom"]),
   title: z.string(),
   order: z.number(),
   isCustom: z.boolean(),
@@ -129,26 +140,12 @@ export const dhikrProgressSchema = z.object({
   sync: syncMetaSchema,
 });
 
-const notificationPreferencesSchema = z.object({
-  enabled: z.boolean(),
-  appointmentReminders: z.boolean(),
-  taskDueReminders: z.boolean(),
-  habitReminders: z.boolean(),
-  freeTimeSuggestions: z.boolean(),
-  overdueTaskAlerts: z.boolean(),
-  dailySummary: z.boolean(),
-  quietHoursStart: z.string().nullable().optional(),
-  quietHoursEnd: z.string().nullable().optional(),
-});
+// Settings shapes evolve version-to-version; keep the backup schema lenient so an
+// older/newer export still imports. `settingsRepository.migrateSettingsShape` fills gaps.
+const notificationPreferencesSchema = z.looseObject({ enabled: z.boolean() });
+const intelligenceSettingsSchema = z.looseObject({ nlpEnabled: z.boolean() });
 
-const intelligenceSettingsSchema = z.object({
-  nlpEnabled: z.boolean(),
-  autoFillConfidenceThreshold: z.number(),
-  suggestFreeSlots: z.boolean(),
-  conflictDetection: z.boolean(),
-});
-
-export const userSettingsSchema = z.object({
+export const userSettingsSchema = z.looseObject({
   id: z.literal("singleton"),
   locale: z.enum(["ar", "en"]),
   theme: z.enum(["light", "dark", "system"]),
@@ -166,7 +163,7 @@ export const userSettingsSchema = z.object({
 
 export const syncQueueEntrySchema = z.object({
   id: idSchema,
-  entityType: z.enum(["appointment", "task", "habit", "dhikr", "settings"]),
+  entityType: z.enum(["appointment", "task", "habit", "dhikr", "settings", "taskCategory"]),
   entityId: idSchema,
   operation: z.enum(["create", "update", "delete"]),
   payload: z.unknown(),
@@ -181,6 +178,7 @@ export const backupDataSchema = z.object({
   data: z.object({
     appointments: z.array(appointmentSchema),
     tasks: z.array(taskSchema),
+    taskCategories: z.array(taskCategorySchema).optional(),
     habits: z.array(habitSchema),
     habitCompletions: z.array(habitCompletionSchema),
     dhikrCategories: z.array(dhikrCategorySchema),
@@ -191,4 +189,21 @@ export const backupDataSchema = z.object({
   }),
 });
 
-export type BackupData = z.infer<typeof backupDataSchema>;
+// Runtime validation is via `backupDataSchema`; the exported type is model-based so
+// the backup page can round-trip repository rows without inference friction.
+export interface BackupData {
+  version: number;
+  exportedAt: string;
+  data: {
+    appointments: import("./models").Appointment[];
+    tasks: import("./models").Task[];
+    taskCategories?: import("./models").TaskCategory[];
+    habits: import("./models").Habit[];
+    habitCompletions: import("./models").HabitCompletion[];
+    dhikrCategories: import("./models").DhikrCategory[];
+    adhkar: import("./models").Dhikr[];
+    dhikrProgress: import("./models").DhikrProgress[];
+    settings: import("./settings").UserSettings[];
+    syncQueue: import("./settings").SyncQueueEntry[];
+  };
+}
