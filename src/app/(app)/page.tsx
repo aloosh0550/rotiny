@@ -15,11 +15,11 @@ export default function HomePage() {
   const isEvening = timeOfDay === "evening" || timeOfDay === "night";
 
   return (
-    <div className="flex flex-col gap-5 pb-6">
+    <div className="flex flex-col gap-4 pb-2">
       <GreetingHeader timeOfDay={timeOfDay} />
       <SmartSuggestionBanner />
       <TodayOverviewCard />
-      <div className="flex flex-col gap-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-4">
+      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-start">
         {isEvening && <EndOfDaySummaryCard />}
         <UpcomingAppointmentCard />
         <ImportantTaskCard />

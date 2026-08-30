@@ -11,6 +11,8 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { CalendarDays, ListChecks, Repeat2, Sparkles, type LucideProps } from "lucide-react";
 import { Sheet } from "@/components/ui/Sheet";
+import { IconTile, type TileColor } from "@/components/ui/IconTile";
+import { DirectionalIcon } from "@/components/ui/DirectionalIcon";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { ROUTES } from "@/lib/constants/routes";
@@ -68,10 +70,10 @@ export function QuickAddProvider({ children }: { children: ReactNode }) {
     isSmart: !section,
   };
 
-  const manualOptions = [
-    { href: `${ROUTES.appointments}?add=1`, label: t("appointments.addAppointment"), icon: CalendarDays },
-    { href: `${ROUTES.tasks}?add=1`, label: t("tasks.newTaskTitle"), icon: ListChecks },
-    { href: `${ROUTES.habits}?add=1`, label: t("habits.addHabit"), icon: Repeat2 },
+  const manualOptions: { href: string; label: string; icon: ComponentType<LucideProps>; color: TileColor }[] = [
+    { href: `${ROUTES.appointments}?add=1`, label: t("appointments.addAppointment"), icon: CalendarDays, color: "indigo" },
+    { href: `${ROUTES.tasks}?add=1`, label: t("tasks.newTaskTitle"), icon: ListChecks, color: "amber" },
+    { href: `${ROUTES.habits}?add=1`, label: t("habits.addHabit"), icon: Repeat2, color: "green" },
   ];
 
   return (
@@ -99,10 +101,13 @@ export function QuickAddProvider({ children }: { children: ReactNode }) {
                     setSheetOpen(false);
                     router.push(opt.href);
                   }}
-                  className="flex items-center gap-3 rounded-lg border border-border bg-surface px-4 py-3 text-start transition-colors duration-150 hover:bg-surface-hover"
+                  className="flex items-center gap-3 rounded-xl border border-border bg-surface px-3.5 py-3 text-start transition-colors duration-150 hover:bg-surface-hover active:scale-[0.99]"
                 >
-                  <Icon className="size-5 text-accent" />
-                  <span className="text-sm font-medium text-text-primary">{opt.label}</span>
+                  <IconTile color={opt.color}>
+                    <Icon className="size-5" />
+                  </IconTile>
+                  <span className="flex-1 text-sm font-semibold text-text-primary">{opt.label}</span>
+                  <DirectionalIcon className="size-4 text-text-tertiary" />
                 </button>
               );
             })}

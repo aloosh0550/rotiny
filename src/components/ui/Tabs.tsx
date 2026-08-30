@@ -11,19 +11,22 @@ export interface TabItem {
 }
 
 /**
- * Sliding segmented control. Exported as `Tabs` for back-compat — callers
- * (ViewSwitcher, CategoryTabs) keep the same props.
+ * Sliding segmented control. Exported as `Tabs` for back-compat.
+ * `fitted` (default) splits width evenly — good for 2–3 short options. Set
+ * `fitted={false}` for a scrolling row of content-width tabs (e.g. category names).
  */
 export function Tabs({
   items,
   value,
   onChange,
   className,
+  fitted = true,
 }: {
   items: TabItem[];
   value: string;
   onChange: (value: string) => void;
   className?: string;
+  fitted?: boolean;
 }) {
   const groupId = useId();
   return (
@@ -44,7 +47,8 @@ export function Tabs({
             aria-selected={active}
             onClick={() => onChange(item.value)}
             className={cn(
-              "relative flex-1 shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors duration-150",
+              "relative shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors duration-150",
+              fitted && "flex-1",
               active ? "text-accent-ink" : "text-text-secondary hover:text-text-primary",
             )}
           >

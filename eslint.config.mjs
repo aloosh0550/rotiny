@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Capacitor native project (contains the copied, minified web bundle).
     "android/**",
+    ".vercel/**",
+    "coverage/**",
   ]),
 ]);
 

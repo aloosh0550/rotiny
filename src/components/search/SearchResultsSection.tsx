@@ -38,7 +38,7 @@ export function SearchResultsSection(props: SearchResultsSectionProps) {
 
   return (
     <section className="flex flex-col gap-2">
-      <h3 className="px-1 text-sm font-bold text-text-secondary">{props.title}</h3>
+      <h3 className="px-1 text-[13px] font-semibold text-text-secondary">{props.title}</h3>
       <div className="flex flex-col gap-2">
         {props.entity === "appointment" &&
           props.items.map((appointment) => (

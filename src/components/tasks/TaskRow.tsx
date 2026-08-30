@@ -66,12 +66,17 @@ export function TaskRow({ task }: TaskRowProps) {
     <motion.div
       layout={!reduce}
       className={cn(
-        "relative flex items-stretch gap-3 overflow-hidden rounded-lg border border-border bg-surface pe-2 shadow-xs transition-colors",
+        "relative flex gap-3 overflow-hidden rounded-lg border border-border bg-surface py-3 pe-2 ps-3 shadow-xs transition-colors",
         isCompleted && "opacity-60",
       )}
     >
-      <span className={cn("w-1 shrink-0", isCompleted ? "bg-border" : priorityBar[task.priority])} />
-      <div className="relative flex items-center py-3">
+      <span
+        className={cn(
+          "absolute inset-y-2 start-0 w-1 rounded-full",
+          isCompleted ? "bg-border" : priorityBar[task.priority],
+        )}
+      />
+      <div className="relative flex shrink-0 items-start pt-0.5">
         <Checkbox
           size="md"
           checked={isCompleted}
@@ -80,10 +85,11 @@ export function TaskRow({ task }: TaskRowProps) {
         />
         {burst && <Celebration />}
       </div>
-      <Link href={ROUTES.task(task.id)} className="flex min-w-0 flex-1 items-center gap-2 py-2">
+
+      <Link href={ROUTES.task(task.id)} className="min-w-0 flex-1 py-0.5">
         <p
           className={cn(
-            "min-w-0 flex-1 truncate text-sm font-medium text-text-primary",
+            "text-sm font-medium leading-snug text-text-primary line-clamp-2",
             isCompleted && "text-text-tertiary line-through",
           )}
           dir="auto"
@@ -91,20 +97,20 @@ export function TaskRow({ task }: TaskRowProps) {
           {task.title}
         </p>
         {dueDate && (
-          <Badge tone={isOverdue ? "danger" : "neutral"} className="shrink-0">
+          <Badge tone={isOverdue ? "danger" : "neutral"} className="mt-1.5">
             {formatDayLabel(dueDate, locale)}
             {task.hasTime ? ` · ${formatTime(task.dueAt as string, locale)}` : ""}
           </Badge>
         )}
       </Link>
-      <div className="flex items-center">
-        <IconButton
-          icon={<Trash2 className="size-4" />}
-          label={t("common.delete")}
-          size="sm"
-          onClick={() => setConfirmOpen(true)}
-        />
-      </div>
+
+      <IconButton
+        icon={<Trash2 className="size-4" />}
+        label={t("common.delete")}
+        size="sm"
+        className="-mt-0.5 shrink-0 text-text-tertiary"
+        onClick={() => setConfirmOpen(true)}
+      />
       <ConfirmDialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}

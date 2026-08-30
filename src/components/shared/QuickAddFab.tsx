@@ -14,7 +14,7 @@ export function QuickAddFab() {
       aria-label={label}
       whileTap={{ scale: 0.9 }}
       transition={{ type: "spring", stiffness: 500, damping: 30 }}
-      className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] end-4 z-40 flex size-14 items-center justify-center rounded-2xl bg-accent text-accent-ink shadow-glow-accent md:hidden"
+      className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] end-4 z-40 flex size-[52px] items-center justify-center rounded-2xl bg-accent text-accent-ink shadow-glow-accent md:hidden"
     >
       <AnimatePresence mode="wait" initial={false}>
         <motion.span

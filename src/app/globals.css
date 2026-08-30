@@ -161,7 +161,19 @@ body {
 
 /* Relaxed line-height for long Arabic passages (adhkar text). */
 .leading-arabic-relaxed {
-  line-height: 1.9;
+  line-height: 1.85;
+}
+
+/* ---- Safe-area helpers (Android edge-to-edge / iOS notch) ----
+   On the web these insets are 0, so the classes are inert there. */
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.bottom-safe {
+  bottom: env(safe-area-inset-bottom);
 }
 
 /* ---- Keyframes ---- */

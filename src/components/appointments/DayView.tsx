@@ -35,7 +35,8 @@ export function DayView({ date, appointments }: DayViewProps) {
   if (occurrences.length === 0) {
     return (
       <EmptyState
-        icon={<CalendarDays className="size-6" />}
+        compact
+        icon={<CalendarDays />}
         title={t("appointments.noAppointments")}
         subtitle={t("appointments.noAppointmentsSubtitle")}
       />

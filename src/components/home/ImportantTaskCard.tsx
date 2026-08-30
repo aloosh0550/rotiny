@@ -31,7 +31,7 @@ export function ImportantTaskCard() {
 
   return (
     <section className="flex flex-col gap-2 px-4 md:px-0">
-      <h3 className="text-sm font-bold text-text-secondary">{t("home.importantTask")}</h3>
+      <h3 className="text-[13px] font-semibold text-text-secondary">{t("home.importantTask")}</h3>
       {!tasks ? (
         <div className="h-[68px] skeleton rounded-lg" />
       ) : top ? (
@@ -60,7 +60,7 @@ export function ImportantTaskCard() {
           </Link>
         </Card>
       ) : (
-        <EmptyState icon={<ListTodo className="size-6" />} title={t("home.noImportantTasks")} />
+        <EmptyState compact icon={<ListTodo />} title={t("home.noImportantTasks")} />
       )}
     </section>
   );

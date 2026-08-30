@@ -13,9 +13,9 @@ import { isSameDay } from "date-fns";
 
 function Metric({ value, label }: { value: string | number; label: string }) {
   return (
-    <div className="flex flex-col">
-      <span className="text-lg font-bold tabular-nums text-text-primary">{value}</span>
-      <span className="text-xs text-text-secondary">{label}</span>
+    <div className="flex min-w-0 flex-col">
+      <span className="truncate text-base font-bold tabular-nums text-text-primary">{value}</span>
+      <span className="truncate text-[11px] text-text-secondary">{label}</span>
     </div>
   );
 }
@@ -30,7 +30,7 @@ export function TodayOverviewCard() {
   const now = useNow();
 
   if (!appointments || !tasks || !habits || !completions) {
-    return <div className="mx-4 h-36 skeleton rounded-lg md:mx-0" />;
+    return <div className="mx-4 h-28 skeleton rounded-lg md:mx-0" />;
   }
   const todaysAppointments = appointments.filter((a) => isSameDay(new Date(a.startAt), now));
   const todaysTasks = tasks.filter((t2) => t2.dueAt && isSameDay(new Date(t2.dueAt), now));
@@ -45,13 +45,13 @@ export function TodayOverviewCard() {
 
   return (
     <section className="px-4 md:px-0">
-      <Card accent padding="lg" className="flex items-center gap-5">
-        <ProgressRing value={rate} size={86} strokeWidth={8}>
-          <span className="text-lg font-bold tabular-nums text-text-primary">{pct}%</span>
+      <Card accent padding="md" className="flex items-center gap-4 sm:gap-5">
+        <ProgressRing value={rate} size={72} strokeWidth={7} className="shrink-0">
+          <span className="text-base font-bold tabular-nums text-text-primary">{pct}%</span>
         </ProgressRing>
-        <div className="flex flex-1 flex-col gap-3">
-          <p className="text-base font-bold text-text-primary">{t("home.todayOverview")}</p>
-          <div className="flex items-center gap-6">
+        <div className="flex min-w-0 flex-1 flex-col gap-2.5">
+          <p className="text-sm font-semibold text-text-primary">{t("home.todayOverview")}</p>
+          <div className="flex items-center justify-between gap-2">
             <Metric value={`${completedTasks}/${todaysTasks.length}`} label={t("nav.tasks")} />
             <Metric value={`${completedHabits}/${dueHabits.length}`} label={t("nav.habits")} />
             <Metric value={todaysAppointments.length} label={t("nav.appointments")} />

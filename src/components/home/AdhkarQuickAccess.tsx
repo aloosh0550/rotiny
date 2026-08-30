@@ -31,7 +31,7 @@ export function AdhkarQuickAccess() {
 
   return (
     <section className="flex flex-col gap-2 px-4 md:px-0">
-      <h3 className="text-sm font-bold text-text-secondary">{t("home.adhkarQuickAccess")}</h3>
+      <h3 className="text-[13px] font-semibold text-text-secondary">{t("home.adhkarQuickAccess")}</h3>
       <Link href={ROUTES.adhkar}>
         <Card interactive className="flex items-center gap-3">
           <IconTile color="violet" size="lg">

@@ -36,21 +36,16 @@ export function TopBar() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border bg-bg/80 px-4 backdrop-blur-lg",
+        "pt-safe sticky top-0 z-30 shrink-0 border-b border-border bg-bg/85 backdrop-blur-lg",
         "md:hidden",
       )}
     >
-      <div className="flex min-w-0 items-center gap-2.5">
-        {isHome ? (
-          <>
-            <Logo size={30} />
-            <span className="text-lg font-bold text-text-primary">{title}</span>
-          </>
-        ) : (
-          <h1 className="truncate text-lg font-bold text-text-primary">{title}</h1>
-        )}
-      </div>
-      <div className="flex shrink-0 items-center gap-0.5">
+      <div className="flex h-14 items-center justify-between gap-2 px-4">
+        <div className="flex min-w-0 items-center gap-2.5">
+          {isHome && <Logo size={28} className="shrink-0" />}
+          <h1 className="truncate text-[17px] font-bold text-text-primary">{title}</h1>
+        </div>
+        <div className="-me-1.5 flex shrink-0 items-center gap-0.5">
         {!onSearchPage && (
           <Link href={ROUTES.search} aria-label={t("nav.search")}>
             <IconButton icon={<Search className="size-5" />} label={t("nav.search")} variant="ghost" />
@@ -65,6 +60,7 @@ export function TopBar() {
             />
           </Link>
         )}
+        </div>
       </div>
     </header>
   );

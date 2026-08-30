@@ -22,11 +22,8 @@ export function BottomNav() {
   ];
 
   return (
-    <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-bg-elevated/92 backdrop-blur-lg md:hidden"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-    >
-      <div className="mx-auto flex h-16 max-w-lg items-stretch px-1.5">
+    <nav className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-border bg-bg-elevated/95 backdrop-blur-lg md:hidden">
+      <div className="mx-auto flex h-16 max-w-lg items-stretch">
         {items.map((item) => {
           const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
           const Icon = item.icon;
@@ -35,9 +32,9 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
-              className="relative flex flex-1 flex-col items-center justify-center gap-1 py-1.5"
+              className="relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-0.5 pt-2 pb-1.5"
             >
-              <span className="relative flex h-8 w-14 items-center justify-center">
+              <span className="relative flex h-7 w-12 items-center justify-center">
                 {active && (
                   <motion.span
                     layoutId="bottomnav-pill"
@@ -47,7 +44,7 @@ export function BottomNav() {
                 )}
                 <Icon
                   className={cn(
-                    "relative size-[22px] transition-colors",
+                    "relative size-[21px] transition-colors",
                     active ? "text-accent-fg" : "text-text-tertiary",
                   )}
                   strokeWidth={active ? 2.4 : 2}
@@ -55,7 +52,7 @@ export function BottomNav() {
               </span>
               <span
                 className={cn(
-                  "text-[11px] font-semibold transition-colors",
+                  "max-w-full truncate text-[10.5px] font-semibold transition-colors",
                   active ? "text-accent-fg" : "text-text-tertiary",
                 )}
               >

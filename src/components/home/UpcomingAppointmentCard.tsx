@@ -23,7 +23,7 @@ export function UpcomingAppointmentCard() {
 
   return (
     <section className="flex flex-col gap-2 px-4 md:px-0">
-      <h3 className="text-sm font-bold text-text-secondary">{t("home.upcomingAppointment")}</h3>
+      <h3 className="text-[13px] font-semibold text-text-secondary">{t("home.upcomingAppointment")}</h3>
       {!appointments ? (
         <div className="h-[68px] skeleton rounded-lg" />
       ) : upcoming ? (
@@ -43,7 +43,11 @@ export function UpcomingAppointmentCard() {
           </Card>
         </Link>
       ) : (
-        <EmptyState icon={<CalendarDays className="size-6" />} title={t("home.noAppointmentsToday")} />
+        <EmptyState
+          compact
+          icon={<CalendarDays />}
+          title={t("home.noAppointmentsToday")}
+        />
       )}
     </section>
   );

@@ -22,7 +22,7 @@ export function HabitsProgressStrip() {
 
   return (
     <section className="flex flex-col gap-2 px-4 md:px-0">
-      <h3 className="text-sm font-bold text-text-secondary">{t("home.habitsProgress")}</h3>
+      <h3 className="text-[13px] font-semibold text-text-secondary">{t("home.habitsProgress")}</h3>
       {!habits || !completions ? (
         <div className="h-12 skeleton rounded-full" />
       ) : dueToday && dueToday.length > 0 ? (
@@ -57,7 +57,7 @@ export function HabitsProgressStrip() {
           })}
         </div>
       ) : (
-        <EmptyState icon={<Check className="size-6" />} title={t("home.allHabitsDone")} />
+        <EmptyState compact icon={<Check />} title={t("home.allHabitsDone")} />
       )}
     </section>
   );

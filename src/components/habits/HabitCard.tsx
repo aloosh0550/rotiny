@@ -28,12 +28,14 @@ export function HabitCard({ habit, dueToday, completedToday, onToggle }: HabitCa
 
   return (
     <Card padding="md" className="flex items-center gap-3">
-      <Link href={ROUTES.habit(habit.id)} className="flex min-w-0 flex-1 items-center gap-3">
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <p className="truncate text-sm font-semibold text-text-primary">{habit.title}</p>
-          <p className="truncate text-xs text-text-tertiary">{summary}</p>
+      <Link href={ROUTES.habit(habit.id)} className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <div className="flex min-w-0 items-center gap-2">
+          <p className="min-w-0 flex-1 truncate text-sm font-semibold text-text-primary" dir="auto">
+            {habit.title}
+          </p>
+          <StreakBadge habit={habit} />
         </div>
-        <StreakBadge habit={habit} />
+        <p className="truncate text-xs text-text-tertiary">{summary}</p>
       </Link>
 
       {dueToday && (
@@ -44,17 +46,18 @@ export function HabitCard({ habit, dueToday, completedToday, onToggle }: HabitCa
               onClick={onToggle}
               aria-label={t("habits.todayToggleLabel")}
               className={cn(
-                "flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors duration-150",
+                "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-bold tabular-nums transition-colors duration-150 active:scale-95",
                 completedToday
-                  ? "border-success/30 bg-success/10 text-success"
-                  : "border-border bg-surface text-text-secondary hover:bg-surface-hover",
+                  ? "border-accent-green/30 bg-accent-green-soft text-accent-green"
+                  : "border-border-strong bg-surface text-text-secondary hover:bg-surface-hover",
               )}
             >
               <Count value={completedToday ? target.value : 0} total={target.value} />
-              {target.unit && <span className="font-normal">{target.unit}</span>}
+              {target.unit && <span className="text-xs font-medium">{target.unit}</span>}
             </button>
           ) : (
             <Checkbox
+              size="md"
               checked={completedToday}
               onCheckedChange={onToggle}
               label={t("habits.todayToggleLabel")}

@@ -36,15 +36,20 @@ export function Sheet({ open, onClose, title, children, closeLabel = "Close" }: 
             role="dialog"
             aria-modal="true"
             className={cn(
-              "relative z-10 flex max-h-[90vh] w-full flex-col overflow-hidden border border-border bg-bg-elevated shadow-lg",
+              "relative z-10 flex max-h-[92dvh] w-full flex-col overflow-hidden border border-border bg-bg-elevated shadow-lg",
               "rounded-t-2xl sm:my-8 sm:max-w-md sm:rounded-2xl",
             )}
           >
             <div className="mx-auto mt-2.5 h-1.5 w-10 shrink-0 rounded-full bg-border-strong sm:hidden" />
             {title && (
-              <div className="flex shrink-0 items-center justify-between px-5 pt-3 pb-2">
-                <h2 className="text-lg font-bold text-text-primary">{title}</h2>
-                <IconButton icon={<X className="size-4" />} label={closeLabel} onClick={onClose} />
+              <div className="flex shrink-0 items-center justify-between gap-3 px-5 pt-3 pb-2">
+                <h2 className="min-w-0 truncate text-lg font-bold text-text-primary">{title}</h2>
+                <IconButton
+                  icon={<X className="size-4" />}
+                  label={closeLabel}
+                  onClick={onClose}
+                  className="-me-1.5 shrink-0"
+                />
               </div>
             )}
             <div className="overflow-y-auto px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-2">

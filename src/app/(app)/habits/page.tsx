@@ -2,7 +2,6 @@
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Sheet } from "@/components/ui/Sheet";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -44,21 +43,10 @@ export default function HabitsPage() {
   const openAdd = useCallback(() => setAddOpen(true), []);
 
   return (
-    <div className="flex flex-col gap-4 px-4 py-4">
+    <div className="flex flex-col gap-3 px-4 py-3">
       <Suspense fallback={null}>
         <AddQueryWatcher onDetected={openAdd} />
       </Suspense>
-
-      <div className="flex items-center justify-end">
-        <Button
-          size="sm"
-          variant="secondary"
-          icon={<Plus className="size-4" />}
-          onClick={openAdd}
-        >
-          {t("habits.addHabit")}
-        </Button>
-      </div>
 
       {habits === undefined ? (
         <div className="flex flex-col gap-3">

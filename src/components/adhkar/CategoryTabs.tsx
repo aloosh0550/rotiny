@@ -12,6 +12,7 @@ export interface CategoryTabsProps {
 export function CategoryTabs({ categories, value, onChange }: CategoryTabsProps) {
   return (
     <Tabs
+      fitted={false}
       items={categories.map((c) => ({ value: c.id, label: c.title }))}
       value={value}
       onChange={onChange}
