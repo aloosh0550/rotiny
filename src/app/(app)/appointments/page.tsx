@@ -15,7 +15,7 @@ import { useTranslation } from "@/lib/i18n/I18nProvider";
 import { useAppointments } from "@/lib/hooks/useAppointments";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { useNow } from "@/lib/hooks/useNow";
-import { addDays, formatDayLabel, formatFullDate } from "@/lib/time/dateUtils";
+import { addDays, formatDayLabel, formatFullDate, isSameDay } from "@/lib/time/dateUtils";
 import { ROUTES } from "@/lib/constants/routes";
 
 interface AddPrefill {
@@ -77,34 +77,42 @@ function AppointmentsPageInner() {
   const effectivePrefillDate = addPrefill?.date ?? selectedDate;
 
   return (
-    <div className="flex flex-col gap-4 pb-6">
-      <div className="flex flex-col gap-3 px-4 pt-3">
+    <div className="flex flex-col gap-3 pb-6">
+      <div className="flex flex-col gap-2.5 px-4 pt-3">
         <ViewSwitcher value={view} onChange={setView} />
         <div className="flex items-center justify-between gap-2">
           <IconButton
             icon={<DirectionalIcon direction="back" className="size-4" />}
             label={t("appointments.previousPeriod")}
             variant="surface"
+            size="sm"
             onClick={goPrev}
           />
-          <div className="flex flex-1 flex-col items-center">
-            <span className="text-sm font-semibold text-text-primary">{formatDayLabel(selectedDate, locale)}</span>
-            <span className="text-xs text-text-tertiary">{formatFullDate(selectedDate, locale)}</span>
+          <div className="flex min-w-0 flex-1 items-baseline justify-center gap-2">
+            <span className="truncate text-sm font-semibold text-text-primary">
+              {formatDayLabel(selectedDate, locale)}
+            </span>
+            {!isSameDay(selectedDate, now) && (
+              <button
+                type="button"
+                onClick={goToday}
+                className="shrink-0 rounded-full bg-accent-soft px-2.5 py-0.5 text-[11px] font-bold text-accent-fg transition-colors duration-150 hover:brightness-95"
+              >
+                {t("common.today")}
+              </button>
+            )}
           </div>
           <IconButton
             icon={<DirectionalIcon direction="forward" className="size-4" />}
             label={t("appointments.nextPeriod")}
             variant="surface"
+            size="sm"
             onClick={goNext}
           />
         </div>
-        <button
-          type="button"
-          onClick={goToday}
-          className="self-center rounded-full bg-accent-soft px-3.5 py-1.5 text-xs font-bold text-accent-fg transition-colors duration-150 hover:brightness-95"
-        >
-          {t("common.today")}
-        </button>
+        <span className="text-center text-xs text-text-tertiary">
+          {formatFullDate(selectedDate, locale)}
+        </span>
       </div>
 
       <div className="px-4">

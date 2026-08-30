@@ -2,8 +2,6 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Plus, SlidersHorizontal } from "lucide-react";
-import { Input } from "@/components/ui/Input";
-import { IconButton } from "@/components/ui/IconButton";
 import { Sheet } from "@/components/ui/Sheet";
 import { useToast } from "@/components/ui/Toast";
 import { TaskForm } from "./TaskForm";
@@ -69,28 +67,32 @@ export function QuickAddTaskBar({ autoFocus, onAutoFocused }: QuickAddTaskBarPro
           inside this div. */}
       <div className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-20 flex flex-col gap-2 bg-bg/90 px-4 py-3 backdrop-blur-lg md:top-0 md:px-0">
         <form onSubmit={(e) => void handleSubmit(e)} className="flex items-center gap-2">
-          <Input
+          <input
             ref={inputRef}
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder={t("tasks.quickAddPlaceholder")}
             disabled={submitting}
-            className="flex-1"
+            dir="auto"
+            aria-label={t("tasks.newTaskTitle")}
+            className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-bg-elevated px-3.5 text-sm text-text-primary placeholder:text-text-tertiary transition-colors duration-150 focus:border-accent focus:shadow-focus focus:outline-none"
           />
-          <IconButton
+          <button
             type="button"
-            icon={<SlidersHorizontal className="size-4" />}
-            label={t("tasks.detailsToggle")}
-            variant="surface"
             onClick={() => setDetailsOpen(true)}
-          />
-          <IconButton
+            aria-label={t("tasks.detailsToggle")}
+            className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-surface text-text-secondary transition-colors hover:bg-surface-hover active:scale-95"
+          >
+            <SlidersHorizontal className="size-[18px]" />
+          </button>
+          <button
             type="submit"
-            icon={<Plus className="size-4" />}
-            label={t("common.add")}
-            variant="primary"
+            aria-label={t("common.add")}
             disabled={submitting || !value.trim()}
-          />
+            className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-ink shadow-sm transition-[background-color,transform] hover:bg-accent-strong active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
+          >
+            <Plus className="size-5" strokeWidth={2.5} />
+          </button>
         </form>
       </div>
 

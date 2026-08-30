@@ -8,8 +8,9 @@ import {
   type ComponentType,
   type ReactNode,
 } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import { CalendarDays, ListChecks, Repeat2, Sparkles, type LucideProps } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CalendarDays, ListChecks, Plus, Repeat2, Sparkles, type LucideProps } from "lucide-react";
+import { useSection } from "@/lib/section";
 import { Sheet } from "@/components/ui/Sheet";
 import { IconTile, type TileColor } from "@/components/ui/IconTile";
 import { DirectionalIcon } from "@/components/ui/DirectionalIcon";
@@ -36,24 +37,30 @@ export function useQuickAdd(): QuickAddContextValue {
 }
 
 export function QuickAddProvider({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
   const router = useRouter();
   const { t } = useTranslation();
   const settings = useSettings();
+  const { section: sectionKey } = useSection();
   const nlpEnabled = settings?.intelligence.nlpEnabled ?? true;
   const [sheetOpen, setSheetOpen] = useState(false);
 
+  // A "+" on a section screen adds to that section directly; Home / Search /
+  // More open the smart quick-add sheet. Uses the shared section detector so it
+  // stays correct regardless of trailing slashes.
   const section = useMemo(() => {
-    if (pathname === ROUTES.appointments)
-      return { route: ROUTES.appointments, icon: CalendarDays, label: t("appointments.addAppointment") };
-    if (pathname === ROUTES.tasks)
-      return { route: ROUTES.tasks, icon: ListChecks, label: t("tasks.newTaskTitle") };
-    if (pathname === ROUTES.habits)
-      return { route: ROUTES.habits, icon: Repeat2, label: t("habits.addHabit") };
-    if (pathname === ROUTES.adhkar)
-      return { route: ROUTES.adhkar, icon: Sparkles, label: t("adhkar.addDhikr") };
-    return null;
-  }, [pathname, t]);
+    switch (sectionKey) {
+      case "appointments":
+        return { route: ROUTES.appointments, label: t("appointments.addAppointment") };
+      case "tasks":
+        return { route: ROUTES.tasks, label: t("tasks.newTaskTitle") };
+      case "habits":
+        return { route: ROUTES.habits, label: t("habits.addHabit") };
+      case "adhkar":
+        return { route: ROUTES.adhkar, label: t("adhkar.addDhikr") };
+      default:
+        return null;
+    }
+  }, [sectionKey, t]);
 
   function trigger() {
     if (section) {
@@ -65,7 +72,9 @@ export function QuickAddProvider({ children }: { children: ReactNode }) {
 
   const value: QuickAddContextValue = {
     trigger,
-    icon: section?.icon ?? Sparkles,
+    // Section screens: a plain "+" (the action is unambiguous). Home/Search/More:
+    // a spark, signalling the smart natural-language add.
+    icon: section ? Plus : Sparkles,
     label: section?.label ?? t("home.quickAddFabLabel"),
     isSmart: !section,
   };

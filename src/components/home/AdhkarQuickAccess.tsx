@@ -33,8 +33,8 @@ export function AdhkarQuickAccess() {
     <section className="flex flex-col gap-2 px-4 md:px-0">
       <h3 className="text-[13px] font-semibold text-text-secondary">{t("home.adhkarQuickAccess")}</h3>
       <Link href={ROUTES.adhkar}>
-        <Card interactive className="flex items-center gap-3">
-          <IconTile color="violet" size="lg">
+        <Card interactive className="flex items-center gap-3 py-3">
+          <IconTile color="violet">
             <Icon />
           </IconTile>
           <div className="min-w-0 flex-1">

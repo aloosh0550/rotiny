@@ -28,8 +28,8 @@ export function UpcomingAppointmentCard() {
         <div className="h-[68px] skeleton rounded-lg" />
       ) : upcoming ? (
         <Link href={ROUTES.appointment(upcoming.id)}>
-          <Card interactive className="flex items-center gap-3">
-            <IconTile color="indigo" size="lg">
+          <Card interactive className="flex items-center gap-3 py-3">
+            <IconTile color="indigo">
               <CalendarDays />
             </IconTile>
             <div className="min-w-0 flex-1">

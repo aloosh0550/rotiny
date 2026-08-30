@@ -49,7 +49,7 @@ export function ImportantTaskCard() {
               }
             />
           </div>
-          <Link href={ROUTES.task(top.id)} className="flex min-w-0 flex-1 items-center gap-3 py-4 pe-4">
+          <Link href={ROUTES.task(top.id)} className="flex min-w-0 flex-1 items-center gap-3 py-3 pe-4">
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-text-primary">{top.title}</p>
               {top.dueAt && (

@@ -27,20 +27,18 @@ export function HabitCard({ habit, dueToday, completedToday, onToggle }: HabitCa
   const isSteppedTarget = !!target && target.value > 1;
 
   return (
-    <Card padding="md" className="flex items-center gap-3">
-      <Link href={ROUTES.habit(habit.id)} className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <div className="flex min-w-0 items-center gap-2">
-          <p className="min-w-0 flex-1 truncate text-sm font-semibold text-text-primary" dir="auto">
-            {habit.title}
-          </p>
-          <StreakBadge habit={habit} />
-        </div>
+    <Card padding="md" className="flex items-center gap-3 py-3.5">
+      <Link href={ROUTES.habit(habit.id)} className="flex min-w-0 flex-1 flex-col gap-1">
+        <p className="truncate text-sm font-semibold text-text-primary" dir="auto">
+          {habit.title}
+        </p>
         <p className="truncate text-xs text-text-tertiary">{summary}</p>
       </Link>
 
-      {dueToday && (
-        <div className="shrink-0">
-          {isSteppedTarget ? (
+      <div className="flex shrink-0 items-center gap-2">
+        <StreakBadge habit={habit} />
+        {dueToday &&
+          (isSteppedTarget ? (
             <button
               type="button"
               onClick={onToggle}
@@ -62,9 +60,8 @@ export function HabitCard({ habit, dueToday, completedToday, onToggle }: HabitCa
               onCheckedChange={onToggle}
               label={t("habits.todayToggleLabel")}
             />
-          )}
-        </div>
-      )}
+          ))}
+      </div>
     </Card>
   );
 }
