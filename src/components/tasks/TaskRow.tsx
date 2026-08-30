@@ -13,6 +13,7 @@ import { useToast } from "@/components/ui/Toast";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
 import { useNow } from "@/lib/hooks/useNow";
 import { tasksRepository } from "@/lib/db/repositories";
+import { onEntityMutated } from "@/lib/services/effects/appEffects";
 import { ROUTES } from "@/lib/constants/routes";
 import { formatDayLabel, formatTime } from "@/lib/time/dateUtils";
 import { cn } from "@/lib/utils/cn";
@@ -44,21 +45,25 @@ export function TaskRow({ task }: TaskRowProps) {
     if (checked) {
       setBurst(true);
       window.setTimeout(() => setBurst(false), 600);
-      await tasksRepository.update(task.id, {
+      const updated = await tasksRepository.update(task.id, {
         status: "completed",
         completedAt: new Date().toISOString(),
       });
+      await onEntityMutated({ type: "task", op: "update", entity: updated });
       show(t("common.done"), {
         tone: "success",
         action: {
           label: t("tasks.undoComplete"),
           onClick: () => {
-            void tasksRepository.update(task.id, { status: "pending", completedAt: null });
+            void tasksRepository
+              .update(task.id, { status: "pending", completedAt: null })
+              .then((u) => onEntityMutated({ type: "task", op: "update", entity: u }));
           },
         },
       });
     } else {
-      await tasksRepository.update(task.id, { status: "pending", completedAt: null });
+      const u = await tasksRepository.update(task.id, { status: "pending", completedAt: null });
+      await onEntityMutated({ type: "task", op: "update", entity: u });
     }
   }
 
@@ -114,7 +119,11 @@ export function TaskRow({ task }: TaskRowProps) {
       <ConfirmDialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
-        onConfirm={() => void tasksRepository.delete(task.id)}
+        onConfirm={() =>
+          void tasksRepository
+            .delete(task.id)
+            .then(() => onEntityMutated({ type: "task", op: "delete", entity: { id: task.id } }))
+        }
         body={t("tasks.deleteConfirm")}
       />
     </motion.div>

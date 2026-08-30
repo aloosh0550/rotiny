@@ -10,9 +10,40 @@ import { extractDuration } from "./durationExtractor";
 import { extractRecurrence } from "./recurrenceExtractor";
 import { extractPriority } from "./priorityExtractor";
 import { extractEntities } from "./entityExtractor";
+import { extractCountTarget } from "./countTargetExtractor";
 import { classifyIntent } from "./intentClassifier";
-import { AR_HABIT_DESIRE_VERBS } from "./lexicon.ar";
-import { EN_HABIT_DESIRE_VERBS } from "./lexicon.en";
+import { AR_HABIT_DESIRE_VERBS, AR_REMINDER_CUES } from "./lexicon.ar";
+import { EN_HABIT_DESIRE_VERBS, EN_REMINDER_CUES } from "./lexicon.en";
+
+const REMINDER_CUES = [...AR_REMINDER_CUES, ...EN_REMINDER_CUES].sort((a, b) => b.length - a.length);
+
+function findReminderCueSpan(text: string): MatchSpan | undefined {
+  for (const cue of REMINDER_CUES) {
+    const esc = cue.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp(`(?:^|\\s)(${esc})(?=\\s|$)`, "i");
+    const m = re.exec(text);
+    if (m && m[1]) {
+      const start = m.index + m[0].indexOf(m[1]);
+      return { start, end: start + m[1].length };
+    }
+  }
+  return undefined;
+}
+
+/** "ذكرني قبل ساعة" / "remind me 10 minutes before" → minutes before the item. */
+function extractReminderOffset(text: string): number | undefined {
+  const before = /(?:قبل|before)\s+([^\s،.]+(?:\s+[^\s،.]+)?)/i.exec(text);
+  if (!before) return undefined;
+  const phrase = before[1].toLowerCase();
+  if (/^(ساعة|hour|an hour)/.test(phrase)) return 60;
+  if (/(نص|نصف|half)/.test(phrase)) return 30;
+  const num = /(\d{1,3})/.exec(phrase);
+  if (!num) return undefined;
+  const n = Number(num[1]);
+  if (/(ساعة|ساعات|hour|hr)/.test(phrase)) return n * 60;
+  if (/(دقيقة|دقائق|دقايق|min)/.test(phrase)) return n;
+  return undefined;
+}
 
 const FILLER_PHRASES = [...AR_HABIT_DESIRE_VERBS, ...EN_HABIT_DESIRE_VERBS].sort((a, b) => b.length - a.length);
 
@@ -39,10 +70,16 @@ export class RuleBasedIntentParser implements IIntentParser {
     const date = extractDate(text, now);
     const duration = extractDuration(text);
     const recurrence = extractRecurrence(text);
+    const countTarget = extractCountTarget(text);
+    const reminderCueSpan = findReminderCueSpan(text);
+    const reminderOffset = reminderCueSpan ? extractReminderOffset(text) : undefined;
 
-    const excludedSpans: MatchSpan[] = [date?.span, duration?.span, recurrence?.span].filter(
-      (s): s is MatchSpan => !!s,
-    );
+    const excludedSpans: MatchSpan[] = [
+      date?.span,
+      duration?.span,
+      recurrence?.span,
+      countTarget?.span,
+    ].filter((s): s is MatchSpan => !!s);
     const { field: time, ambiguousHour } = extractTime(text, { excludedSpans });
 
     const priority = extractPriority(text);
@@ -53,6 +90,13 @@ export class RuleBasedIntentParser implements IIntentParser {
       hasPersonEntity: entities.some((e) => e.type === "person"),
       hasDateOrTime: !!(date || time),
     });
+
+    // A "remind me to …" phrase is a strong task signal — override a weak guess.
+    if (reminderCueSpan && (classification.intentType === "unknown" || classification.ambiguous)) {
+      classification.intentType = "create_task";
+      classification.ambiguous = false;
+      classification.confidence = Math.max(classification.confidence, 0.75);
+    }
 
     const clarifications: ClarificationQuestion[] = [];
 
@@ -96,6 +140,8 @@ export class RuleBasedIntentParser implements IIntentParser {
       time?.span,
       duration?.span,
       recurrence?.span,
+      countTarget?.span,
+      reminderCueSpan,
       priority.span.end > priority.span.start ? priority.span : undefined,
       fillerSpan,
     ].filter((s): s is MatchSpan => !!s);
@@ -130,6 +176,16 @@ export class RuleBasedIntentParser implements IIntentParser {
       };
     if (classification.intentType === "create_task" || classification.intentType === "create_habit") {
       intent.priority = { value: priority.value, confidence: priority.confidence, sourceText: priority.sourceText };
+    }
+    if (countTarget) {
+      intent.countTarget = {
+        value: countTarget.value,
+        confidence: countTarget.confidence,
+        sourceText: countTarget.sourceText,
+      };
+    }
+    if (reminderOffset !== undefined) {
+      intent.reminderOffsetMinutes = { value: reminderOffset, confidence: 0.8 };
     }
 
     void entitySpans; // kept for symmetry with other extractors' span bookkeeping; entities aren't stripped from the title

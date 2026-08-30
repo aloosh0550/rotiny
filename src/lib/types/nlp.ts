@@ -51,6 +51,10 @@ export interface ParsedIntent {
   durationMinutes?: ParsedField<number>;
   recurrence?: ParsedField<RecurrenceRule>;
   priority?: ParsedField<Priority>;
+  /** Habit count target, e.g. "8 أكواب" → { value: 8, unit: "كوب" }. */
+  countTarget?: ParsedField<{ value: number; unit: string }>;
+  /** "ذكرني قبل ساعة" → 60. Minutes before the item's time. */
+  reminderOffsetMinutes?: ParsedField<number>;
   entities: ParsedEntity[];
   clarifications: ClarificationQuestion[];
   rawText: string;

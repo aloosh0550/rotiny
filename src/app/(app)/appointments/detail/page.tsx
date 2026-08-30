@@ -16,6 +16,7 @@ import { useAppointment, useAppointments } from "@/lib/hooks/useAppointments";
 import { localCalendarService } from "@/lib/services/calendar/LocalCalendarService";
 import { differenceInMinutes, formatDuration, formatFullDate, formatTime } from "@/lib/time/dateUtils";
 import { ROUTES } from "@/lib/constants/routes";
+import { onEntityMutated } from "@/lib/services/effects/appEffects";
 import type { TranslationKey } from "@/lib/i18n/paths";
 import type { RecurrenceRule } from "@/lib/types";
 
@@ -68,6 +69,7 @@ function AppointmentDetailInner() {
 
   async function handleDelete() {
     await localCalendarService.deleteEvent(appointment!.id);
+    await onEntityMutated({ type: "appointment", op: "delete", entity: { id: appointment!.id } });
     router.push(ROUTES.appointments);
   }
 

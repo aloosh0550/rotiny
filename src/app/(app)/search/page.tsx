@@ -18,6 +18,16 @@ export default function SearchPage() {
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounced(query, 250);
+
+  // Seed from a `?q=` deep link (Smart Add search, widget) without needing a
+  // Suspense boundary for useSearchParams under static export.
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      const q = new URLSearchParams(window.location.search).get("q");
+      if (q) setQuery(q);
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, []);
   const categories = useDhikrCategories();
 
   const [results, setResults] = useState<SearchResults>(EMPTY_RESULTS);

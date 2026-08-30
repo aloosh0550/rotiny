@@ -1,232 +1,249 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, ListChecks, Repeat2, Search, Send } from "lucide-react";
+import { CalendarDays, ChevronDown, ListChecks, Repeat2, Search, Send } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Chip";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { TimePicker } from "@/components/ui/TimePicker";
+import { PriorityPicker } from "@/components/tasks/PriorityPicker";
+import { RecurrenceEditor } from "./RecurrenceEditor";
+import { ReminderEditor } from "./ReminderEditor";
 import { useToast } from "@/components/ui/Toast";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
-import { ruleBasedIntentParser } from "@/lib/services/nlp/RuleBasedIntentParser";
-import type { IntentType, ParsedIntent, Priority } from "@/lib/types";
-import { appointmentsRepository, habitsRepository, tasksRepository } from "@/lib/db/repositories";
-import { generateId } from "@/lib/utils/id";
-import { createSyncMeta } from "@/lib/utils/sync";
-import { combineDateAndTime, formatWeekday, todayKey } from "@/lib/time/dateUtils";
+import { useSettings } from "@/lib/hooks/useSettings";
+import {
+  smartAddService,
+  type Interpretation,
+  type SmartEntityType,
+} from "@/lib/services/smartAdd/SmartAddService";
+import { formatDayLabel, formatTime } from "@/lib/time/dateUtils";
 import { ROUTES } from "@/lib/constants/routes";
 import { cn } from "@/lib/utils/cn";
 
-const INTENT_ICON: Record<string, typeof CalendarDays> = {
-  create_appointment: CalendarDays,
-  create_task: ListChecks,
-  create_habit: Repeat2,
-  search_query: Search,
+const TYPE_ICON: Record<SmartEntityType, typeof CalendarDays> = {
+  appointment: CalendarDays,
+  task: ListChecks,
+  habit: Repeat2,
+  search: Search,
+};
+
+const TYPE_LABEL_KEY: Record<SmartEntityType, "typeAppointment" | "typeTask" | "typeHabit" | "typeSearch"> = {
+  appointment: "typeAppointment",
+  task: "typeTask",
+  habit: "typeHabit",
+  search: "typeSearch",
 };
 
 export function SmartInputBox({ onDone }: { onDone: () => void }) {
   const { t, locale } = useTranslation();
-  const { show } = useToast();
   const router = useRouter();
+  const { show } = useToast();
+  const settings = useSettings();
+  const threshold = settings?.intelligence.autoFillConfidenceThreshold ?? 0.6;
 
   const [text, setText] = useState("");
-  const [parsed, setParsed] = useState<ParsedIntent | null>(null);
-  const [intentOverride, setIntentOverride] = useState<IntentType | null>(null);
-  const [title, setTitle] = useState("");
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
-  const [priority, setPriority] = useState<Priority>("normal");
+  const [interp, setInterp] = useState<Interpretation | null>(null);
+  const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const intentType = intentOverride ?? parsed?.intentType ?? "create_task";
-
-  const recurrenceSummary = useMemo(() => {
-    if (!parsed?.recurrence) return null;
-    const rule = parsed.recurrence.value;
-    if (rule.byWeekday && rule.byWeekday.length > 0) {
-      const days = rule.byWeekday.map((d) => formatWeekday(new Date(2026, 0, 4 + d), locale, "long"));
-      return t("appointments.repeatOn") + " " + days.join(locale === "ar" ? " و" : ", ");
-    }
-    return rule.frequency === "daily" ? t("habits.recurrenceDaily") : t("habits.recurrenceWeekly");
-  }, [parsed, locale, t]);
-
-  function handleParse() {
+  function parse() {
     if (!text.trim()) return;
-    const result = ruleBasedIntentParser.parse(text, { locale });
-    setParsed(result);
-    setIntentOverride(null);
-    setTitle(result.title.value || text);
-    setDate(result.date?.value ?? "");
-    setTime(result.time?.value ?? "");
-    setPriority(result.priority?.value ?? "normal");
+    const i = smartAddService.interpret(text, { locale, confidenceThreshold: threshold });
+    setInterp(i);
+    setEditing(i.needsConfirmation && i.parsed.clarifications.length > 0);
   }
 
-  function reset() {
-    setText("");
-    setParsed(null);
-    setIntentOverride(null);
+  function patch(p: Partial<Interpretation>) {
+    setInterp((prev) => (prev ? { ...prev, ...p } : prev));
   }
 
-  async function handleSave() {
-    if (!parsed) return;
-
-    if (intentType === "search_query") {
-      router.push(ROUTES.search);
-      onDone();
-      return;
-    }
-
+  async function commit() {
+    if (!interp) return;
     setSaving(true);
     try {
-      if (intentType === "create_appointment") {
-        const day = date || todayKey();
-        const startTime = time || "09:00";
-        const startAt = combineDateAndTime(day, startTime);
-        const durationMinutes = parsed.durationMinutes?.value ?? 60;
-        const endAt = new Date(new Date(startAt).getTime() + durationMinutes * 60_000).toISOString();
-        await appointmentsRepository.create({
-          id: generateId(),
-          title: title || text,
-          startAt,
-          endAt,
-          allDay: false,
-          reminders: [{ id: generateId(), offsetMinutes: 30, method: "inapp" }],
-          participants: parsed.entities.filter((e) => e.type === "person").map((e) => e.value),
-          calendarProviderId: "local",
-          sync: createSyncMeta(),
-        });
-        show(t("common.saved"), { tone: "success" });
-      } else if (intentType === "create_task") {
-        await tasksRepository.create({
-          id: generateId(),
-          title: title || text,
-          dueAt: date ? combineDateAndTime(date, time || "09:00") : null,
-          hasTime: !!time,
-          priority,
-          status: "pending",
-          reminders: [],
-          sync: createSyncMeta(),
-        });
-        show(t("common.saved"), { tone: "success" });
-      } else if (intentType === "create_habit") {
-        if (!parsed.recurrence) {
-          router.push(`${ROUTES.habits}?add=1`);
-          onDone();
-          return;
-        }
-        await habitsRepository.create({
-          id: generateId(),
-          title: title || text,
-          recurrence: parsed.recurrence.value,
-          target: parsed.durationMinutes ? { type: "duration", value: parsed.durationMinutes.value } : null,
-          reminders: [],
-          sync: createSyncMeta(),
-        });
-        show(t("common.saved"), { tone: "success" });
+      const result = await smartAddService.commit(interp);
+      if (result.entityType === "search") {
+        onDone();
+        router.push(`${ROUTES.search}?q=${encodeURIComponent(interp.title)}`);
+        return;
       }
-      reset();
+      show(t("common.saved"), { tone: "success" });
       onDone();
     } finally {
       setSaving(false);
     }
   }
 
-  if (!parsed) {
+  // ---- input screen ----
+  if (!interp) {
     return (
       <div className="flex flex-col gap-3">
         <Input
           autoFocus
           value={text}
+          dir="auto"
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") handleParse();
+            if (e.key === "Enter") parse();
           }}
           placeholder={t("home.quickAddPlaceholder")}
         />
-        <Button onClick={handleParse} disabled={!text.trim()} icon={<Send className="size-4" />}>
+        <Button onClick={parse} disabled={!text.trim()} icon={<Send className="size-4" />}>
           {t("common.confirm")}
         </Button>
       </div>
     );
   }
 
-  const Icon = INTENT_ICON[intentType] ?? ListChecks;
-  const intentClarification = parsed.clarifications.find((c) => c.field === "intent");
-  const timeClarification = parsed.clarifications.find((c) => c.field === "time");
+  const Icon = TYPE_ICON[interp.entityType];
+  const intentClar = interp.parsed.clarifications.find((c) => c.field === "intent");
+  const dateLabel = interp.date ? formatDayLabel(new Date(`${interp.date}T00:00:00`), locale) : null;
+  const timeLabel = interp.time ? formatTime(`2000-01-01T${interp.time}:00`, locale) : null;
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-2 rounded-lg bg-accent/10 px-3 py-2 text-accent">
-        <Icon className="size-4 shrink-0" />
-        <span className="text-xs font-medium">&ldquo;{parsed.rawText}&rdquo;</span>
+      <p className="text-sm font-semibold text-text-primary">{t("smartAdd.understood")}</p>
+
+      {/* Interpretation summary card */}
+      <div className="flex items-start gap-3 rounded-lg border border-accent/25 bg-accent-soft p-3.5">
+        <Icon className="mt-0.5 size-5 shrink-0 text-accent-fg" />
+        <div className="min-w-0 flex-1">
+          <span className="inline-flex rounded-full bg-accent px-2 py-0.5 text-[11px] font-bold text-accent-ink">
+            {t(`smartAdd.${TYPE_LABEL_KEY[interp.entityType]}`)}
+          </span>
+          <p className="mt-1.5 truncate text-sm font-semibold text-text-primary" dir="auto">
+            {interp.title}
+          </p>
+          {(dateLabel || timeLabel) && (
+            <p className="text-xs text-text-secondary">
+              {[dateLabel, timeLabel].filter(Boolean).join(" · ")}
+            </p>
+          )}
+        </div>
       </div>
 
-      {intentClarification && (
-        <div className="flex flex-col gap-2">
-          <p className="text-xs text-text-secondary">{intentClarification.question}</p>
-          <div className="flex flex-wrap gap-2">
-            {intentClarification.options?.map((opt) => (
-              <Chip
-                key={String(opt.value)}
-                selected={intentType === opt.value}
-                onClick={() => setIntentOverride(opt.value as IntentType)}
-              >
-                {opt.label}
-              </Chip>
-            ))}
-          </div>
-        </div>
+      {interp.needsConfirmation && (
+        <p className="text-xs text-warning-fg">{t("smartAdd.lowConfidence")}</p>
       )}
 
-      <Input value={title} onChange={(e) => setTitle(e.target.value)} label={t("tasks.fieldTitle")} />
-
-      {(intentType === "create_appointment" || intentType === "create_task") && (
-        <div className="grid grid-cols-2 gap-3">
-          <DatePicker value={date} onChange={(e) => setDate(e.target.value)} label={t("appointments.fieldDate")} />
-          {timeClarification ? (
-            <div className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-text-secondary">{t("appointments.fieldStartTime")}</span>
-              <div className="flex gap-2">
-                {timeClarification.options?.map((opt) => (
-                  <Chip key={String(opt.value)} selected={time === opt.value} onClick={() => setTime(String(opt.value))}>
-                    {opt.label}
-                  </Chip>
-                ))}
+      {!editing ? (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="flex items-center justify-center gap-1.5 text-sm font-semibold text-accent-fg"
+        >
+          {t("smartAdd.edit")}
+          <ChevronDown className="size-4" />
+        </button>
+      ) : (
+        <div className="flex flex-col gap-4 border-t border-border pt-4">
+          {intentClar && (
+            <div className="flex flex-col gap-2">
+              <span className="text-xs text-text-secondary">{intentClar.question}</span>
+              <div className="flex flex-wrap gap-2">
+                {intentClar.options?.map((opt) => {
+                  const et =
+                    opt.value === "create_appointment"
+                      ? "appointment"
+                      : opt.value === "create_habit"
+                        ? "habit"
+                        : "task";
+                  return (
+                    <Chip
+                      key={String(opt.value)}
+                      selected={interp.entityType === et}
+                      onClick={() => patch({ entityType: et as SmartEntityType })}
+                    >
+                      {opt.label}
+                    </Chip>
+                  );
+                })}
               </div>
             </div>
-          ) : (
-            <TimePicker value={time} onChange={(e) => setTime(e.target.value)} label={t("appointments.fieldStartTime")} />
+          )}
+
+          <Input
+            label={t("tasks.fieldTitle")}
+            value={interp.title}
+            dir="auto"
+            onChange={(e) => patch({ title: e.target.value })}
+          />
+
+          {(interp.entityType === "task" || interp.entityType === "appointment") && (
+            <div className="grid grid-cols-2 gap-3">
+              <DatePicker
+                label={t("appointments.fieldDate")}
+                value={interp.date ?? ""}
+                onChange={(e) => patch({ date: e.target.value || null })}
+              />
+              <TimePicker
+                label={t("appointments.fieldStartTime")}
+                value={interp.time ?? ""}
+                onChange={(e) => patch({ time: e.target.value || null })}
+              />
+            </div>
+          )}
+
+          {interp.entityType === "task" && (
+            <PriorityPicker
+              label={t("tasks.fieldPriority")}
+              value={interp.priority}
+              onChange={(priority) => patch({ priority })}
+            />
+          )}
+
+          {interp.entityType !== "search" && (
+            <RecurrenceEditor
+              value={interp.recurrence}
+              onChange={(recurrence) => patch({ recurrence })}
+            />
+          )}
+
+          {interp.entityType !== "search" && (
+            <ReminderEditor
+              value={interp.reminders}
+              onChange={(reminders) => patch({ reminders })}
+            />
+          )}
+
+          {interp.entityType === "habit" && interp.countTarget && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-text-secondary">{t("smartAdd.fieldTarget")}</span>
+              <Input
+                type="number"
+                className="h-10 w-24"
+                value={String(interp.countTarget.value)}
+                onChange={(e) =>
+                  patch({
+                    countTarget: {
+                      value: Number(e.target.value) || 1,
+                      unit: interp.countTarget!.unit,
+                    },
+                  })
+                }
+              />
+              <span className="text-sm text-text-tertiary">{interp.countTarget.unit}</span>
+            </div>
           )}
         </div>
       )}
 
-      {intentType === "create_task" && (
-        <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-text-secondary">{t("tasks.fieldPriority")}</span>
-          <div className="flex gap-2">
-            {(["important", "normal", "later"] as Priority[]).map((p) => (
-              <Chip key={p} selected={priority === p} onClick={() => setPriority(p)}>
-                {t(`priority.${p}`)}
-              </Chip>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {intentType === "create_habit" && (
-        <div className={cn("rounded-lg border px-3 py-2.5 text-sm", parsed.recurrence ? "border-border bg-surface text-text-primary" : "border-warning/30 bg-warning/10 text-warning")}>
-          {recurrenceSummary ?? (locale === "ar" ? "لم يتم التعرف على تكرار — سيتم فتح النموذج الكامل" : "No recurrence detected — opening the full form instead")}
-        </div>
-      )}
-
-      <div className="flex gap-2">
-        <Button variant="secondary" fullWidth onClick={reset}>
+      <div className={cn("flex gap-2", editing ? "pt-1" : "")}>
+        <Button
+          variant="secondary"
+          fullWidth
+          onClick={() => {
+            setInterp(null);
+            setEditing(false);
+          }}
+        >
           {t("common.back")}
         </Button>
-        <Button fullWidth onClick={handleSave} loading={saving}>
-          {t("tasks.confirmAndSave")}
+        <Button fullWidth loading={saving} onClick={() => void commit()}>
+          {t("smartAdd.confirm")}
         </Button>
       </div>
     </div>

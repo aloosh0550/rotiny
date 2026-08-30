@@ -20,6 +20,7 @@ import { habitsRepository } from "@/lib/db/repositories";
 import { computeHabitStats } from "@/lib/time/streak";
 import { formatDuration, formatTime } from "@/lib/time/dateUtils";
 import { ROUTES } from "@/lib/constants/routes";
+import { onEntityMutated } from "@/lib/services/effects/appEffects";
 import type { HabitTarget, Locale } from "@/lib/types";
 
 function formatTarget(target: HabitTarget | null | undefined, locale: Locale): string | null {
@@ -92,13 +93,15 @@ function HabitDetailInner() {
   async function handleDelete() {
     if (!habit) return;
     await habitsRepository.delete(habit.id);
+    await onEntityMutated({ type: "habit", op: "delete", entity: { id: habit.id } });
     show(t("common.deleted"), { tone: "success" });
     router.push(ROUTES.habits);
   }
 
   async function handleArchive() {
     if (!habit) return;
-    await habitsRepository.update(habit.id, { archivedAt: new Date().toISOString() });
+    const _a = await habitsRepository.update(habit.id, { archivedAt: new Date().toISOString() });
+    await onEntityMutated({ type: "habit", op: "delete", entity: _a });
     show(t("common.saved"), { tone: "success" });
     router.push(ROUTES.habits);
   }

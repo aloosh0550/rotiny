@@ -16,6 +16,7 @@ import { useTranslation } from "@/lib/i18n/I18nProvider";
 import { useTasks } from "@/lib/hooks/useTasks";
 import { tasksRepository } from "@/lib/db/repositories";
 import { ROUTES } from "@/lib/constants/routes";
+import { onEntityMutated } from "@/lib/services/effects/appEffects";
 import { formatFullDate, formatTime, formatDuration } from "@/lib/time/dateUtils";
 import { cn } from "@/lib/utils/cn";
 
@@ -95,6 +96,7 @@ function TaskDetailInner() {
 
   async function handleDelete() {
     await tasksRepository.delete(currentTask.id);
+    await onEntityMutated({ type: "task", op: "delete", entity: { id: currentTask.id } });
     show(t("common.deleted"), { tone: "success" });
     router.push(ROUTES.tasks);
   }

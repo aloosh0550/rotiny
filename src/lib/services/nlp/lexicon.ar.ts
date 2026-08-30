@@ -37,6 +37,8 @@ export const AR_RELATIVE_DAYS: Record<string, number> = {
   بكره: 1,
   غداً: 1,
   غدا: 1,
+  "غدًا": 1,
+  "بعد غدًا": 2,
   أمس: -1,
   امس: -1,
   "أول أمس": -2,
@@ -140,20 +142,38 @@ export const AR_LOCATION_KEYWORDS = [
 export const AR_TASK_VERBS = [
   "اتصل",
   "اتصلي",
+  "أتصل",
   "أنهي",
   "انهي",
   "أرسل",
   "ارسل",
   "راجع",
+  "أراجع",
+  "اراجع",
   "جهز",
+  "أجهز",
   "حضر",
+  "أحضر",
   "اشتري",
+  "أشتري",
   "ادفع",
+  "أدفع",
   "سلم",
+  "أسلم",
   "تابع",
+  "أتابع",
   "اطبع",
+  "أطبع",
   "احجز",
+  "أحجز",
+  "أكمل",
+  "اكمل",
+  "أنجز",
+  "انجز",
 ];
+
+/** Verbs that signal "remind me to …" — a strong task cue; stripped from the title. */
+export const AR_REMINDER_CUES = ["ذكرني", "ذكّرني", "تذكير", "نبهني", "نبّهني", "فكرني", "ذكرنى"];
 
 export const AR_APPOINTMENT_CUES = ["اجتماع", "موعد", "مقابلة", "لقاء", "زيارة"];
 export const AR_HABIT_DESIRE_VERBS = ["أبغى", "ابغى", "أريد", "اريد", "ودي", "حابب"];
