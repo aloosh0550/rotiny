@@ -4,4 +4,5 @@
     <string name="title_activity_main">Routini</string>
     <string name="package_name">com.routini.app</string>
     <string name="custom_url_scheme">com.routini.app</string>
+    <string name="widget_description">مهام ومواعيد اليوم على الشاشة الرئيسية</string>
 </resources>

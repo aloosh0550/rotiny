@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="routiniBg">#171B21</color>
+    <color name="routiniSurface">#1E232B</color>
+    <color name="routiniText">#F0F2F5</color>
+    <color name="routiniTextSecondary">#A6ADBB</color>
+    <color name="routiniTeal">#2DD4BF</color>
+    <color name="routiniBorder">#2A2F38</color>
+    <color name="routiniWidgetBg">#0F1216</color>
+</resources>
