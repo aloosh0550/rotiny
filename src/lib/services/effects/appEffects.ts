@@ -45,5 +45,39 @@ export async function onEntityMutated(m: MutatedEntity): Promise<void> {
     /* queue is best-effort */
   }
 
-  await Promise.allSettled(handlers.map((h) => h(m)));
+  await Promise.allSettled([
+    ...handlers.map((h) => h(m)),
+    reschedule(),
+    refreshWidget(),
+    syncCalendar(m),
+  ]);
+}
+
+// Lazy-loaded so the web bundle never pulls native plugin code unless it runs.
+async function reschedule(): Promise<void> {
+  try {
+    const { syncReminders } = await import("@/lib/services/notifications/ReminderScheduler");
+    await syncReminders();
+  } catch {
+    /* ignore */
+  }
+}
+
+async function refreshWidget(): Promise<void> {
+  try {
+    const { refreshWidget: doRefresh } = await import("@/lib/services/widget/WidgetBridgeService");
+    await doRefresh();
+  } catch {
+    /* ignore */
+  }
+}
+
+async function syncCalendar(m: MutatedEntity): Promise<void> {
+  if (m.type !== "appointment") return;
+  try {
+    const { calendarSync } = await import("@/lib/services/calendar/CalendarSyncService");
+    await calendarSync.onAppointmentMutated(m.op, m.entity as Appointment | { id: string });
+  } catch {
+    /* ignore */
+  }
 }

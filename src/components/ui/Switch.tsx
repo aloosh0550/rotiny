@@ -25,7 +25,7 @@ export function Switch({ checked, onCheckedChange, label, disabled, id }: Switch
       className={cn(
         "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full px-0.5 transition-colors duration-200",
         "disabled:opacity-50 disabled:pointer-events-none",
-        checked ? "bg-accent justify-end" : "bg-border-strong justify-start",
+        checked ? "bg-brand justify-end" : "bg-border-strong justify-start",
       )}
     >
       <motion.span

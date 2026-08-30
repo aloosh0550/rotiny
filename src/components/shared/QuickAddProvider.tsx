@@ -3,6 +3,7 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ComponentType,
@@ -43,6 +44,17 @@ export function QuickAddProvider({ children }: { children: ReactNode }) {
   const { section: sectionKey } = useSection();
   const nlpEnabled = settings?.intelligence.nlpEnabled ?? true;
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  // `routini://add` deep link → Home with ?add-smart=1 → open the smart sheet.
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      if (new URLSearchParams(window.location.search).get("add-smart") === "1") {
+        setSheetOpen(true);
+        window.history.replaceState(null, "", window.location.pathname);
+      }
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, []);
 
   // A "+" on a section screen adds to that section directly; Home / Search /
   // More open the smart quick-add sheet. Uses the shared section detector so it

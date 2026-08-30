@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/Checkbox";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
 import { useTasks } from "@/lib/hooks/useTasks";
 import { tasksRepository } from "@/lib/db/repositories";
+import { onEntityMutated } from "@/lib/services/effects/appEffects";
 import { ROUTES } from "@/lib/constants/routes";
 import { PRIORITY_ORDER } from "@/lib/types";
 import { formatTime } from "@/lib/time/dateUtils";
@@ -21,6 +22,7 @@ export function ImportantTaskCard() {
   const top = pending
     ?.slice()
     .sort((a, b) => {
+      if ((b.pinned ? 1 : 0) !== (a.pinned ? 1 : 0)) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
       const pDiff = PRIORITY_ORDER.indexOf(a.priority) - PRIORITY_ORDER.indexOf(b.priority);
       if (pDiff !== 0) return pDiff;
       if (a.dueAt && b.dueAt) return a.dueAt.localeCompare(b.dueAt);
@@ -42,10 +44,12 @@ export function ImportantTaskCard() {
               checked={false}
               label={t("tasks.markComplete")}
               onCheckedChange={() =>
-                void tasksRepository.update(top.id, {
-                  status: "completed",
-                  completedAt: new Date().toISOString(),
-                })
+                void tasksRepository
+                  .update(top.id, {
+                    status: "completed",
+                    completedAt: new Date().toISOString(),
+                  })
+                  .then((u) => onEntityMutated({ type: "task", op: "update", entity: u }))
               }
             />
           </div>

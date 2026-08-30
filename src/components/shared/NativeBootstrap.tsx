@@ -36,6 +36,32 @@ export function NativeBootstrap() {
       } catch {
         /* plugin unavailable — ignore */
       }
+
+      // Reminders + widget: schedule from current data, then keep in sync on resume.
+      try {
+        const { syncReminders } = await import("@/lib/services/notifications/ReminderScheduler");
+        const { refreshWidget } = await import("@/lib/services/widget/WidgetBridgeService");
+        await syncReminders();
+        await refreshWidget();
+
+        const { App } = await import("@capacitor/app");
+        await App.addListener("appStateChange", ({ isActive }) => {
+          if (isActive) {
+            void syncReminders();
+            void refreshWidget();
+          }
+        });
+        // Roll the widget over at local midnight.
+        const msToMidnight = (() => {
+          const n = new Date();
+          const m = new Date(n);
+          m.setHours(24, 0, 30, 0);
+          return m.getTime() - n.getTime();
+        })();
+        window.setTimeout(() => void refreshWidget(), msToMidnight);
+      } catch {
+        /* plugins unavailable — ignore */
+      }
     })();
   }, []);
 
