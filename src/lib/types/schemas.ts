@@ -111,7 +111,7 @@ export const habitCompletionSchema = z.object({
 
 export const dhikrCategorySchema = z.object({
   id: idSchema,
-  kind: z.enum(["morning", "evening", "after_prayer", "sleep", "wake", "custom"]),
+  kind: z.enum(["morning", "evening", "after_prayer", "sleep", "wake", "istighfar", "custom"]),
   title: z.string(),
   order: z.number(),
   isCustom: z.boolean(),

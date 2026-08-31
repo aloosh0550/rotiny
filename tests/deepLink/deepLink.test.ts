@@ -8,6 +8,12 @@ describe("resolveDeepLink", () => {
   it("routini://task/abc → task detail query route", () => {
     expect(resolveDeepLink("routini://task/abc")?.path).toBe("/tasks/detail?id=abc");
   });
+  it("routini://task/abc?complete=1 → completeTask action", () => {
+    const r = resolveDeepLink("routini://task/abc?complete=1");
+    expect(r?.path).toBe("/tasks/detail?id=abc");
+    expect(r?.action).toBe("completeTask");
+    expect(r?.actionId).toBe("abc");
+  });
   it("routini://appointment/xyz", () => {
     expect(resolveDeepLink("routini://appointment/xyz")?.path).toBe("/appointments/detail?id=xyz");
   });

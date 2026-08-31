@@ -26,6 +26,8 @@ public class RoutiniWidgetService extends RemoteViewsService {
         String title;
         String time;
         String url;
+        String id;
+        String kind;
         boolean done;
         String badge; // "مهمة" / "موعد" / "عادة"
     }
@@ -67,7 +69,9 @@ public class RoutiniWidgetService extends RemoteViewsService {
                 r.time = o.optString("time", "");
                 r.done = o.optBoolean("done", false);
                 r.badge = badge;
-                r.url = "routini://" + kind + "/" + o.optString("id", "");
+                r.id = o.optString("id", "");
+                r.kind = kind;
+                r.url = "routini://" + kind + "/" + r.id;
                 rows.add(r);
             }
         }
@@ -84,6 +88,17 @@ public class RoutiniWidgetService extends RemoteViewsService {
             Intent fill = new Intent();
             fill.setData(Uri.parse(r.url));
             v.setOnClickFillInIntent(R.id.row_root, fill);
+
+            // Tasks: the leading circle completes the task (safe — opens the app to apply it).
+            if ("task".equals(r.kind) && !r.id.isEmpty()) {
+                v.setViewVisibility(R.id.row_check, android.view.View.VISIBLE);
+                v.setTextViewText(R.id.row_check, r.done ? "●" : "○");
+                Intent check = new Intent();
+                check.setData(Uri.parse("routini://task/" + r.id + (r.done ? "" : "?complete=1")));
+                v.setOnClickFillInIntent(R.id.row_check, check);
+            } else {
+                v.setViewVisibility(R.id.row_check, android.view.View.GONE);
+            }
             return v;
         }
     }

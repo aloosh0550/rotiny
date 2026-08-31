@@ -120,6 +120,7 @@ function adhkarNotifications(s: UserSettings): PlannedNotification[] {
     { key: "wake", label: "أذكار الاستيقاظ", cat: "wake" },
     { key: "morning", label: "أذكار الصباح", cat: "morning" },
     { key: "afterPrayer", label: "أذكار بعد الصلاة", cat: "after_prayer" },
+    { key: "istighfar", label: "الاستغفار", cat: "istighfar" },
     { key: "evening", label: "أذكار المساء", cat: "evening" },
     { key: "sleep", label: "أذكار النوم", cat: "sleep" },
   ];

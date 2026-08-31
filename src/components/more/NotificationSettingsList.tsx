@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Switch } from "@/components/ui/Switch";
 import { TimePicker } from "@/components/ui/TimePicker";
 import { Button } from "@/components/ui/Button";
+import { Chip } from "@/components/ui/Chip";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
 import type { TranslationKey } from "@/lib/i18n/paths";
 import type { AdhkarReminderTimes, NotificationPreferences } from "@/lib/types";
@@ -41,9 +42,12 @@ const ADHKAR_TIME_ROWS: { key: keyof AdhkarReminderTimes; labelKey: TranslationK
   { key: "wake", labelKey: "adhkar.categoryWake" },
   { key: "morning", labelKey: "adhkar.categoryMorning" },
   { key: "afterPrayer", labelKey: "adhkar.categoryAfterPrayer" },
+  { key: "istighfar", labelKey: "adhkar.categoryIstighfar" },
   { key: "evening", labelKey: "adhkar.categoryEvening" },
   { key: "sleep", labelKey: "adhkar.categorySleep" },
 ];
+
+const DEFAULT_OFFSET_OPTIONS = [0, 5, 10, 30, 60];
 
 export function NotificationSettingsList({ value, onChange }: NotificationSettingsListProps) {
   const { t } = useTranslation();
@@ -128,6 +132,37 @@ export function NotificationSettingsList({ value, onChange }: NotificationSettin
           />
         </Card>
       )}
+
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-semibold text-text-secondary">
+          {t("notificationsExtra.reminderDefaults")}
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {DEFAULT_OFFSET_OPTIONS.map((o) => {
+            const active = (value.reminderDefaults ?? []).includes(o);
+            return (
+              <Chip
+                key={o}
+                selected={active}
+                onClick={() =>
+                  setField(
+                    "reminderDefaults",
+                    active
+                      ? value.reminderDefaults.filter((x) => x !== o)
+                      : [...(value.reminderDefaults ?? []), o].sort((a, b) => a - b),
+                  )
+                }
+              >
+                {o === 0
+                  ? t("reminders.atTime")
+                  : o === 60
+                    ? t("reminders.hourBefore")
+                    : t("reminders.minutesBefore", { count: o })}
+              </Chip>
+            );
+          })}
+        </div>
+      </div>
 
       {value.adhkarReminders && (
         <Card className="flex flex-col divide-y divide-border">

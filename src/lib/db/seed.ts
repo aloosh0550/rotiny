@@ -15,7 +15,7 @@ import type {
 } from "@/lib/types";
 import { addDays } from "date-fns";
 
-export const CURRENT_SEED_VERSION = 2;
+export const CURRENT_SEED_VERSION = 3;
 
 function iso(date: Date): string {
   return date.toISOString();
@@ -27,6 +27,7 @@ const CATEGORY_DEFS: { kind: DhikrCategoryKind; title: string; order: number }[]
   { kind: "after_prayer", title: "أذكار بعد الصلاة", order: 2 },
   { kind: "sleep", title: "أذكار النوم", order: 3 },
   { kind: "wake", title: "أذكار الاستيقاظ", order: 4 },
+  { kind: "istighfar", title: "الاستغفار", order: 5 },
 ];
 
 const DHIKR_DEFS: Record<DhikrCategoryKind, { text: string; targetCount: number; source?: string }[]> = {
@@ -91,6 +92,24 @@ const DHIKR_DEFS: Record<DhikrCategoryKind, { text: string; targetCount: number;
       text: "الْحَمْدُ لِلَّهِ الَّذِي عَافَانِي فِي جَسَدِي وَرَدَّ عَلَيَّ رُوحِي وَأَذِنَ لِي بِذِكْرِهِ",
       targetCount: 1,
       source: "سنن الترمذي",
+    },
+  ],
+  istighfar: [
+    { text: "أَسْتَغْفِرُ اللَّهَ", targetCount: 100, source: "صحيح مسلم" },
+    {
+      text: "أَسْتَغْفِرُ اللَّهَ الَّذِي لَا إِلَهَ إِلَّا هُوَ الْحَيَّ الْقَيُّومَ وَأَتُوبُ إِلَيْهِ",
+      targetCount: 3,
+      source: "سنن أبي داود",
+    },
+    {
+      text: "رَبِّ اغْفِرْ لِي وَتُبْ عَلَيَّ إِنَّكَ أَنْتَ التَّوَّابُ الرَّحِيمُ",
+      targetCount: 100,
+      source: "سنن الترمذي",
+    },
+    {
+      text: "اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَهَ إِلَّا أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ (سيد الاستغفار)",
+      targetCount: 1,
+      source: "صحيح البخاري",
     },
   ],
   custom: [],

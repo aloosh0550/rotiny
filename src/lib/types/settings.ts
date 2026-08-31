@@ -9,7 +9,11 @@ export interface AdhkarReminderTimes {
   afterPrayer: string;
   sleep: string;
   wake: string;
+  istighfar: string;
 }
+
+/** Default reminder lead-times (minutes before) applied to new tasks/appointments. */
+export type ReminderDefaults = number[];
 
 export interface NotificationPreferences {
   enabled: boolean;
@@ -23,6 +27,8 @@ export interface NotificationPreferences {
   dailyPlanReminder: boolean;
   dailyPlanReminderTime: string; // "HH:mm"
   adhkarTimes: AdhkarReminderTimes;
+  /** Lead-times (minutes before) pre-selected on new tasks & appointments. */
+  reminderDefaults: number[];
   quietHoursStart?: string | null;
   quietHoursEnd?: string | null;
 }
@@ -104,6 +110,7 @@ export const DEFAULT_ADHKAR_TIMES: AdhkarReminderTimes = {
   afterPrayer: "13:00",
   sleep: "22:30",
   wake: "05:30",
+  istighfar: "20:00",
 };
 
 export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
@@ -118,6 +125,7 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   dailyPlanReminder: false,
   dailyPlanReminderTime: "08:00",
   adhkarTimes: DEFAULT_ADHKAR_TIMES,
+  reminderDefaults: [30],
   quietHoursStart: "22:00",
   quietHoursEnd: "07:00",
 };

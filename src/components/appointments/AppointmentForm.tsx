@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Input } from "@/components/ui/Input";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { TimePicker } from "@/components/ui/TimePicker";
@@ -13,6 +13,7 @@ import { ConflictBanner } from "./ConflictBanner";
 import { ReminderEditor } from "@/components/shared/ReminderEditor";
 import { ColorPicker } from "@/components/shared/ColorPicker";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
+import { useSettings } from "@/lib/hooks/useSettings";
 import { onEntityMutated } from "@/lib/services/effects/appEffects";
 import { localCalendarService } from "@/lib/services/calendar/LocalCalendarService";
 import type { CalendarEventInput } from "@/lib/services/calendar/ICalendarService";
@@ -81,6 +82,8 @@ export function AppointmentForm({
 }: AppointmentFormProps) {
   const { t } = useTranslation();
   const toast = useToast();
+  const settings = useSettings();
+  const remindersTouched = useRef(Boolean(appointment));
 
   const [values, setValues] = useState<FormValues>(() => {
     if (appointment) {
@@ -113,6 +116,24 @@ export function AppointmentForm({
       color: "",
     };
   });
+
+  // Seed reminders for a new appointment from the user's default lead-times (once).
+  useEffect(() => {
+    if (remindersTouched.current || !settings) return;
+    remindersTouched.current = true;
+    const defaults = settings.notifications.reminderDefaults ?? [];
+    const id = window.setTimeout(() => {
+      setValues((prev) => ({
+        ...prev,
+        reminders: defaults.map((offsetMinutes) => ({
+          id: generateId(),
+          offsetMinutes,
+          method: "push" as const,
+        })),
+      }));
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [settings]);
 
   const [endTimeError, setEndTimeError] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -264,7 +285,10 @@ export function AppointmentForm({
       )}
       <ReminderEditor
         value={values.reminders}
-        onChange={(reminders) => update("reminders", reminders)}
+        onChange={(reminders) => {
+          remindersTouched.current = true;
+          update("reminders", reminders);
+        }}
         labelText={t("appointments.fieldReminder")}
       />
       <ColorPicker value={values.color} onChange={(color) => update("color", color)} />

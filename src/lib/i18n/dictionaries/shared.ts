@@ -179,6 +179,7 @@ export const notificationsExtra = {
     adhkarReminders: "تذكير الأذكار",
     dailyPlanReminder: "تذكير خطة اليوم",
     dailyPlanReminderTime: "وقت التذكير",
+    reminderDefaults: "التذكير الافتراضي للعناصر الجديدة",
     unavailableNote: "الإشعارات المجدولة تعمل على تطبيق أندرويد فقط.",
   },
   en: {
@@ -197,6 +198,7 @@ export const notificationsExtra = {
     adhkarReminders: "Adhkar reminders",
     dailyPlanReminder: "Daily plan reminder",
     dailyPlanReminderTime: "Reminder time",
+    reminderDefaults: "Default reminder for new items",
     unavailableNote: "Scheduled notifications work on the Android app only.",
   },
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Select } from "@/components/ui/Select";
@@ -14,6 +14,7 @@ import { RecurrenceEditor } from "@/components/shared/RecurrenceEditor";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
 import { useLiveQuery } from "dexie-react-hooks";
 import { taskCategoriesRepository, tasksRepository } from "@/lib/db/repositories";
+import { useSettings } from "@/lib/hooks/useSettings";
 import { onEntityMutated } from "@/lib/services/effects/appEffects";
 import { generateId } from "@/lib/utils/id";
 import { createSyncMeta } from "@/lib/utils/sync";
@@ -36,6 +37,7 @@ function toTimeString(iso: string): string {
 export function TaskForm({ task, onSaved, onCancel }: TaskFormProps) {
   const { t } = useTranslation();
   const isEdit = Boolean(task);
+  const settings = useSettings();
   const categories = useLiveQuery(() => taskCategoriesRepository.getAllSorted(), []) ?? [];
 
   const [title, setTitle] = useState(task?.title ?? "");
@@ -51,6 +53,30 @@ export function TaskForm({ task, onSaved, onCancel }: TaskFormProps) {
   const [categoryId, setCategoryId] = useState<string>(task?.categoryId ?? "");
   const [pinned, setPinned] = useState<boolean>(task?.pinned ?? false);
   const [reminders, setReminders] = useState<Reminder[]>(task?.reminders ?? []);
+  const remindersTouched = useRef(isEdit);
+
+  // Seed reminders for a new task from the user's default lead-times (once).
+  useEffect(() => {
+    if (remindersTouched.current || !settings) return;
+    remindersTouched.current = true;
+    const defaults = settings.notifications.reminderDefaults ?? [];
+    if (defaults.length === 0) return;
+    const id = window.setTimeout(() => {
+      setReminders(
+        defaults.map((offsetMinutes) => ({
+          id: generateId(),
+          offsetMinutes,
+          method: "push" as const,
+        })),
+      );
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [settings]);
+
+  const handleRemindersChange = (next: Reminder[]) => {
+    remindersTouched.current = true;
+    setReminders(next);
+  };
   const [recurrence, setRecurrence] = useState<RecurrenceRule | null>(task?.recurrence ?? null);
   const [notes, setNotes] = useState(task?.notes ?? "");
   const [saving, setSaving] = useState(false);
@@ -161,7 +187,7 @@ export function TaskForm({ task, onSaved, onCancel }: TaskFormProps) {
 
       <RecurrenceEditor value={recurrence} onChange={setRecurrence} />
 
-      <ReminderEditor value={reminders} onChange={setReminders} />
+      <ReminderEditor value={reminders} onChange={handleRemindersChange} />
 
       <Input
         type="number"

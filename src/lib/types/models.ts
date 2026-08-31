@@ -94,6 +94,7 @@ export type DhikrCategoryKind =
   | "after_prayer"
   | "sleep"
   | "wake"
+  | "istighfar"
   | "custom";
 
 export interface DhikrCategory {

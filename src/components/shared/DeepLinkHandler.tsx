@@ -4,6 +4,23 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { resolveDeepLink } from "@/lib/services/deepLink/DeepLinkService";
 import { isNativePlatform } from "@/lib/native/platform";
+import { tasksRepository } from "@/lib/db/repositories";
+import { onEntityMutated } from "@/lib/services/effects/appEffects";
+
+/** Mark a task done in response to a widget "complete" deep link. Safe if already done. */
+async function completeTaskFromLink(taskId: string): Promise<void> {
+  try {
+    const task = await tasksRepository.getById(taskId);
+    if (!task || task.status === "completed") return;
+    const updated = await tasksRepository.update(taskId, {
+      status: "completed",
+      completedAt: new Date().toISOString(),
+    });
+    await onEntityMutated({ type: "task", op: "update", entity: updated });
+  } catch {
+    /* ignore — task may have been deleted */
+  }
+}
 
 /**
  * Turns `routini://…` links (notification taps, widget taps, Android VIEW intents)
@@ -22,7 +39,11 @@ export function DeepLinkHandler() {
 
         const handle = (url: string) => {
           const resolved = resolveDeepLink(url);
-          if (resolved) router.push(resolved.path);
+          if (!resolved) return;
+          if (resolved.action === "completeTask" && resolved.actionId) {
+            void completeTaskFromLink(resolved.actionId);
+          }
+          router.push(resolved.path);
         };
 
         const launch = await App.getLaunchUrl();

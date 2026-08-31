@@ -4,7 +4,9 @@ export interface ResolvedLink {
   /** In-app path to navigate to (next/router). */
   path: string;
   /** Optional side-effect the app should run after navigating. */
-  action?: "openSmartAdd";
+  action?: "openSmartAdd" | "completeTask";
+  /** Entity id the action operates on (e.g. the task to complete). */
+  actionId?: string;
 }
 
 /**
@@ -50,8 +52,14 @@ export function resolveDeepLink(url: string): ResolvedLink | null {
     case "search":
       return { path: `${ROUTES.search}${query ? `?${query}` : ""}` };
     case "task":
-    case "tasks":
-      return id ? { path: ROUTES.task(id) } : { path: ROUTES.tasks };
+    case "tasks": {
+      if (!id) return { path: ROUTES.tasks };
+      const params = new URLSearchParams(query);
+      if (params.get("complete") === "1") {
+        return { path: ROUTES.task(id), action: "completeTask", actionId: id };
+      }
+      return { path: ROUTES.task(id) };
+    }
     case "appointment":
     case "appointments":
       return id ? { path: ROUTES.appointment(id) } : { path: ROUTES.appointments };

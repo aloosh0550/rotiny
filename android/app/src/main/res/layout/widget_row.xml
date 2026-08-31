@@ -11,6 +11,16 @@
     android:layoutDirection="rtl">
 
     <TextView
+        android:id="@+id/row_check"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:gravity="center"
+        android:text="○"
+        android:textColor="@color/routiniTeal"
+        android:textSize="14sp"
+        android:paddingEnd="6dp" />
+
+    <TextView
         android:id="@+id/row_badge"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
