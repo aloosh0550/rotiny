@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Routini</string>
-    <string name="title_activity_main">Routini</string>
+    <string name="app_name">روتيني</string>
+    <string name="title_activity_main">روتيني</string>
     <string name="package_name">com.routini.app</string>
     <string name="custom_url_scheme">com.routini.app</string>
     <string name="widget_description">مهام ومواعيد اليوم على الشاشة الرئيسية</string>

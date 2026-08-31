@@ -2,7 +2,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
   appId: "com.routini.app",
-  appName: "Routini",
+  appName: "روتيني",
   webDir: "out",
   backgroundColor: "#0f1216",
   android: {
