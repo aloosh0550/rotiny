@@ -7,6 +7,7 @@ import {
 } from "@/lib/db/repositories";
 import { expandOccurrences } from "@/lib/time/recurrence";
 import { combineDateAndTime } from "@/lib/time/dateUtils";
+import { prayerTimesService } from "@/lib/services/prayer/PrayerTimesService";
 import type { Appointment, Habit, Reminder, Task, UserSettings } from "@/lib/types";
 
 /* ---------------------------------------------------------------- helpers -- */
@@ -17,7 +18,16 @@ const CHANNELS = [
   { id: "routini-habits", nameKey: "العادات", importance: 3 },
   { id: "routini-adhkar", nameKey: "الأذكار", importance: 3 },
   { id: "routini-daily-plan", nameKey: "خطة اليوم", importance: 3 },
+  { id: "routini-prayer", nameKey: "الصلاة", importance: 4 },
 ] as const;
+
+const PRAYER_LABELS: Record<string, string> = {
+  fajr: "الفجر",
+  dhuhr: "الظهر",
+  asr: "العصر",
+  maghrib: "المغرب",
+  isha: "العشاء",
+};
 
 /** Stable positive 31-bit id from a string (for LocalNotifications numeric ids). */
 function hashId(s: string): number {
@@ -168,6 +178,41 @@ function dailyPlanNotifications(s: UserSettings): PlannedNotification[] {
   return out;
 }
 
+function prayerNotifications(s: UserSettings): PlannedNotification[] {
+  const p = s.prayerTimes;
+  if (!s.notifications.enabled || !p?.enabled || !p.notify) return [];
+  const out: PlannedNotification[] = [];
+  const names: ("fajr" | "dhuhr" | "asr" | "maghrib" | "isha")[] = [
+    "fajr",
+    "dhuhr",
+    "asr",
+    "maghrib",
+    "isha",
+  ];
+  for (let d = 0; d < 7; d++) {
+    const day = new Date();
+    day.setDate(day.getDate() + d);
+    let times: Record<string, Date>;
+    try {
+      times = prayerTimesService.dayTimes(p, day) as unknown as Record<string, Date>;
+    } catch {
+      return out;
+    }
+    for (const name of names) {
+      const at = new Date(times[name].getTime() - (p.notifyOffsetMinutes ?? 0) * 60_000);
+      out.push({
+        id: hashId(`prayer:${name}:${d}`),
+        title: "الصلاة",
+        body: `${PRAYER_LABELS[name]} 🕌`,
+        at,
+        channelId: "routini-prayer",
+        url: "routini://home",
+      });
+    }
+  }
+  return out;
+}
+
 /* -------------------------------------------------------------- public API - */
 
 let pending: Promise<void> | null = null;
@@ -231,11 +276,12 @@ async function doSync(): Promise<void> {
     ...habits.flatMap((h) => habitNotifications(h, settings)),
     ...adhkarNotifications(settings),
     ...dailyPlanNotifications(settings),
+    ...prayerNotifications(settings),
   ]
     .filter((n) => n.at.getTime() > now + 30_000)
     .filter((n) => !inQuietHours(n.at, settings))
     .sort((a, b) => a.at.getTime() - b.at.getTime())
-    .slice(0, 60); // stay well under the platform ceiling
+    .slice(0, 100); // stay well under the Android ceiling (~500)
 
   if (planned.length === 0) return;
 
