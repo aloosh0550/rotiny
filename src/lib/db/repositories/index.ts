@@ -1,5 +1,6 @@
 export { appointmentsRepository } from "./appointmentsRepository";
 export { tasksRepository } from "./tasksRepository";
+export { taskCategoriesRepository } from "./taskCategoriesRepository";
 export { habitsRepository } from "./habitsRepository";
 export { habitCompletionsRepository } from "./habitCompletionsRepository";
 export { dhikrCategoriesRepository } from "./dhikrCategoriesRepository";

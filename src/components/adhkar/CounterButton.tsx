@@ -55,7 +55,7 @@ export function CounterButton({
           animate={{ opacity: 0 }}
           transition={{ duration: 0.45, ease: "easeOut" }}
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-accent-purple/20"
+          className="pointer-events-none absolute inset-0 bg-accent/20"
         />
       )}
       <div className="relative flex flex-col gap-3">
@@ -66,8 +66,10 @@ export function CounterButton({
           animate={{ scale: 1 }}
           transition={{ duration: 0.18, ease: "easeOut" }}
           className={cn(
-            "inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold",
-            completed ? "bg-success/10 text-success" : "bg-surface-hover text-text-secondary",
+            "inline-flex w-fit items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-bold",
+            completed
+              ? "bg-accent-green-soft text-accent-green"
+              : "bg-accent-soft text-accent-fg",
           )}
         >
           {completed && <Check className="size-4" />}

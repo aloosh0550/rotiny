@@ -22,7 +22,7 @@ export function SmartSuggestionBanner() {
 
   if (overdueCount > 0) {
     return (
-      <Link href={ROUTES.tasks} className="mx-4 block">
+      <Link href={ROUTES.tasks} className="block px-4 md:px-0">
         <div className="flex items-center gap-2.5 rounded-lg border border-warning/30 bg-warning/10 px-3.5 py-2.5">
           <AlertTriangle className="size-4 shrink-0 text-warning" />
           <span className="text-xs font-medium text-warning">
@@ -39,8 +39,8 @@ export function SmartSuggestionBanner() {
 
   if (todaysAppointments.length === 0 && !importantToday) {
     return (
-      <div className="mx-4 flex items-center gap-2.5 rounded-lg border border-accent-purple/20 bg-accent-purple/5 px-3.5 py-2.5">
-        <Sparkles className="size-4 shrink-0 text-accent-purple" />
+      <div className="mx-4 flex items-center md:mx-0 gap-2.5 rounded-lg border border-accent/20 bg-accent/5 px-3.5 py-2.5">
+        <Sparkles className="size-4 shrink-0 text-accent" />
         <span className="text-xs font-medium text-text-secondary">{t("home.emptyDayTitle")}</span>
       </div>
     );

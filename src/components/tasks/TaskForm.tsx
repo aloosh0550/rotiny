@@ -1,18 +1,25 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
+import { Select } from "@/components/ui/Select";
+import { Switch } from "@/components/ui/Switch";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { TimePicker } from "@/components/ui/TimePicker";
 import { Button } from "@/components/ui/Button";
 import { PriorityPicker } from "./PriorityPicker";
+import { ReminderEditor } from "@/components/shared/ReminderEditor";
+import { RecurrenceEditor } from "@/components/shared/RecurrenceEditor";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
-import { tasksRepository } from "@/lib/db/repositories";
+import { useLiveQuery } from "dexie-react-hooks";
+import { taskCategoriesRepository, tasksRepository } from "@/lib/db/repositories";
+import { useSettings } from "@/lib/hooks/useSettings";
+import { onEntityMutated } from "@/lib/services/effects/appEffects";
 import { generateId } from "@/lib/utils/id";
 import { createSyncMeta } from "@/lib/utils/sync";
 import { dateKey, combineDateAndTime } from "@/lib/time/dateUtils";
-import type { Task, Priority } from "@/lib/types";
+import type { Task, Priority, Reminder, RecurrenceRule } from "@/lib/types";
 
 export interface TaskFormProps {
   task?: Task;
@@ -30,6 +37,8 @@ function toTimeString(iso: string): string {
 export function TaskForm({ task, onSaved, onCancel }: TaskFormProps) {
   const { t } = useTranslation();
   const isEdit = Boolean(task);
+  const settings = useSettings();
+  const categories = useLiveQuery(() => taskCategoriesRepository.getAllSorted(), []) ?? [];
 
   const [title, setTitle] = useState(task?.title ?? "");
   const [titleError, setTitleError] = useState<string | undefined>();
@@ -41,6 +50,34 @@ export function TaskForm({ task, onSaved, onCancel }: TaskFormProps) {
     task?.durationMinutes != null ? String(task.durationMinutes) : "",
   );
   const [priority, setPriority] = useState<Priority>(task?.priority ?? "normal");
+  const [categoryId, setCategoryId] = useState<string>(task?.categoryId ?? "");
+  const [pinned, setPinned] = useState<boolean>(task?.pinned ?? false);
+  const [reminders, setReminders] = useState<Reminder[]>(task?.reminders ?? []);
+  const remindersTouched = useRef(isEdit);
+
+  // Seed reminders for a new task from the user's default lead-times (once).
+  useEffect(() => {
+    if (remindersTouched.current || !settings) return;
+    remindersTouched.current = true;
+    const defaults = settings.notifications.reminderDefaults ?? [];
+    if (defaults.length === 0) return;
+    const id = window.setTimeout(() => {
+      setReminders(
+        defaults.map((offsetMinutes) => ({
+          id: generateId(),
+          offsetMinutes,
+          method: "push" as const,
+        })),
+      );
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [settings]);
+
+  const handleRemindersChange = (next: Reminder[]) => {
+    remindersTouched.current = true;
+    setReminders(next);
+  };
+  const [recurrence, setRecurrence] = useState<RecurrenceRule | null>(task?.recurrence ?? null);
   const [notes, setNotes] = useState(task?.notes ?? "");
   const [saving, setSaving] = useState(false);
 
@@ -62,32 +99,33 @@ export function TaskForm({ task, onSaved, onCancel }: TaskFormProps) {
           ? parsedDuration
           : null;
       const trimmedNotes = notes.trim();
+      const common = {
+        title: trimmedTitle,
+        notes: trimmedNotes || undefined,
+        dueAt,
+        hasTime,
+        durationMinutes,
+        priority,
+        categoryId: categoryId || null,
+        pinned,
+        reminders,
+        recurrence,
+      };
 
       if (isEdit && task) {
-        const updated = await tasksRepository.update(task.id, {
-          title: trimmedTitle,
-          dueAt,
-          hasTime,
-          durationMinutes,
-          priority,
-          notes: trimmedNotes || undefined,
-        });
+        const updated = await tasksRepository.update(task.id, common);
+        await onEntityMutated({ type: "task", op: "update", entity: updated });
         onSaved?.(updated);
       } else {
         const now = new Date().toISOString();
         const newTask: Task = {
           id: generateId(),
-          title: trimmedTitle,
-          notes: trimmedNotes || undefined,
-          dueAt,
-          hasTime,
-          durationMinutes,
-          priority,
+          ...common,
           status: "pending",
-          reminders: [],
           sync: createSyncMeta(now),
         };
         const created = await tasksRepository.create(newTask);
+        await onEntityMutated({ type: "task", op: "create", entity: created });
         onSaved?.(created);
       }
     } finally {
@@ -101,6 +139,7 @@ export function TaskForm({ task, onSaved, onCancel }: TaskFormProps) {
         label={t("tasks.fieldTitle")}
         placeholder={t("tasks.fieldTitlePlaceholder")}
         value={title}
+        dir="auto"
         onChange={(e) => {
           setTitle(e.target.value);
           if (titleError) setTitleError(undefined);
@@ -127,6 +166,29 @@ export function TaskForm({ task, onSaved, onCancel }: TaskFormProps) {
         />
       </div>
 
+      {categories.length > 0 && (
+        <Select
+          label={t("smartAdd.fieldCategory")}
+          value={categoryId}
+          onChange={(e) => setCategoryId(e.target.value)}
+          options={[
+            { value: "", label: t("smartAdd.noCategory") },
+            ...categories.map((c) => ({ value: c.id, label: c.name })),
+          ]}
+        />
+      )}
+
+      <PriorityPicker label={t("tasks.fieldPriority")} value={priority} onChange={setPriority} />
+
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-semibold text-text-secondary">{t("tasks.markImportant")}</span>
+        <Switch checked={pinned} onCheckedChange={setPinned} label={t("tasks.markImportant")} />
+      </div>
+
+      <RecurrenceEditor value={recurrence} onChange={setRecurrence} />
+
+      <ReminderEditor value={reminders} onChange={handleRemindersChange} />
+
       <Input
         type="number"
         min={0}
@@ -139,12 +201,11 @@ export function TaskForm({ task, onSaved, onCancel }: TaskFormProps) {
         onChange={(e) => setDuration(e.target.value)}
       />
 
-      <PriorityPicker label={t("tasks.fieldPriority")} value={priority} onChange={setPriority} />
-
       <Textarea
         label={t("tasks.fieldNotes")}
         placeholder={t("common.optional")}
         value={notes}
+        dir="auto"
         onChange={(e) => setNotes(e.target.value)}
       />
 

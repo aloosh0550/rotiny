@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 
+export const dynamic = "force-static";
+
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "روتيني | Routini",
@@ -10,8 +12,8 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#0b0f1a",
-    theme_color: "#0b0f1a",
+    background_color: "#0f1216",
+    theme_color: "#0f1216",
     dir: "rtl",
     lang: "ar",
     icons: [

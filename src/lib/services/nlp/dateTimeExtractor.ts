@@ -49,6 +49,24 @@ function findFirstPhrase(
 }
 
 function extractRelativeDate(text: string, now: Date): { date: Date; span: MatchSpan } | null {
+  // "بعد يومين" / "بعد N أيام" / "in N days" — checked first so "بعد" phrases win.
+  const arInN = /بعد\s+(يومين|\d{1,3})\s*(?:يوم|أيام|ايام)?/u;
+  const arM = arInN.exec(text);
+  if (arM) {
+    const n = arM[1] === "يومين" ? 2 : Number(arM[1]);
+    if (Number.isFinite(n) && n > 0 && n < 366) {
+      return { date: addDays(now, n), span: { start: arM.index, end: arM.index + arM[0].length } };
+    }
+  }
+  const enInN = /\bin\s+(\d{1,3})\s+days?\b/i;
+  const enM = enInN.exec(text);
+  if (enM) {
+    const n = Number(enM[1]);
+    if (n > 0 && n < 366) {
+      return { date: addDays(now, n), span: { start: enM.index, end: enM.index + enM[0].length } };
+    }
+  }
+
   const combined = { ...AR_RELATIVE_DAYS, ...EN_RELATIVE_DAYS };
   const found = findFirstPhrase(text, Object.keys(combined));
   if (!found) return null;
@@ -159,12 +177,14 @@ function extractRawTime(text: string): RawTimeMatch | null {
     return { hour, minute, span, resolved: false };
   }
 
-  const arHour = /الساعة\s*(\d{1,2})\b/;
+  const arHour = new RegExp(`الساعة\\s*(\\d{1,2})(?:[:.](\\d{2}))?\\s*(${MERIDIEM_ALT})?`, "iu");
   match = arHour.exec(text);
   if (match) {
     const hour = Number(match[1]);
+    const minute = match[2] ? Number(match[2]) : 0;
     const span = { start: match.index, end: match.index + match[0].length };
-    return { hour, minute: 0, span, resolved: hour > 12 || hour === 0 };
+    if (match[3]) return { hour: meridiemToOffset(match[3], hour), minute, span, resolved: true };
+    return { hour, minute, span, resolved: hour > 12 || hour === 0 };
   }
 
   const half = new RegExp(`\\b(\\d{1,2})\\s*(?:و\\s*نص)${WB_END}`, "u");

@@ -52,16 +52,16 @@ export function WeekView({ selectedDate, weekStartsOn, appointments, onDayClick 
               onClick={() => onDayClick(day)}
               className={cn(
                 "flex w-20 shrink-0 flex-col items-start gap-1.5 rounded-lg border p-2.5 text-start transition-colors duration-150",
-                isToday ? "border-accent-purple bg-accent-purple/10" : "border-border bg-surface hover:bg-surface-hover",
+                isToday ? "border-accent bg-accent/10" : "border-border bg-surface hover:bg-surface-hover",
               )}
             >
               <span className="text-xs text-text-tertiary">{formatWeekday(day, locale, "short")}</span>
-              <span className={cn("text-sm font-semibold", isToday ? "text-accent-purple" : "text-text-primary")}>
+              <span className={cn("text-sm font-semibold", isToday ? "text-accent" : "text-text-primary")}>
                 {day.getDate()}
               </span>
               <div className="flex min-h-[6px] flex-wrap gap-1">
                 {occs.slice(0, 4).map((o) => (
-                  <span key={o.key} className="size-1.5 rounded-full bg-accent-purple" />
+                  <span key={o.key} className="size-1.5 rounded-full bg-accent" />
                 ))}
               </div>
             </button>
@@ -81,12 +81,12 @@ export function WeekView({ selectedDate, weekStartsOn, appointments, onDayClick 
               onClick={() => onDayClick(day)}
               className={cn(
                 "flex min-h-40 flex-col gap-2 rounded-lg border p-3 text-start transition-colors duration-150",
-                isToday ? "border-accent-purple bg-accent-purple/10" : "border-border bg-surface hover:bg-surface-hover",
+                isToday ? "border-accent bg-accent/10" : "border-border bg-surface hover:bg-surface-hover",
               )}
             >
               <div className="flex items-center justify-between">
                 <span className="text-xs text-text-tertiary">{formatWeekday(day, locale, "short")}</span>
-                <span className={cn("text-sm font-semibold", isToday ? "text-accent-purple" : "text-text-primary")}>
+                <span className={cn("text-sm font-semibold", isToday ? "text-accent" : "text-text-primary")}>
                   {day.getDate()}
                 </span>
               </div>
@@ -94,7 +94,7 @@ export function WeekView({ selectedDate, weekStartsOn, appointments, onDayClick 
                 {occs.slice(0, 3).map((o) => (
                   <span
                     key={o.key}
-                    className="truncate rounded-sm bg-accent-purple/15 px-1.5 py-0.5 text-[11px] font-medium text-accent-purple"
+                    className="truncate rounded-sm bg-accent/15 px-1.5 py-0.5 text-[11px] font-medium text-accent"
                   >
                     {formatTime(o.start.toISOString(), locale)} {o.appointment.title}
                   </span>

@@ -3,14 +3,18 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ComponentType,
   type ReactNode,
 } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import { CalendarDays, ListChecks, Repeat2, Sparkles, type LucideProps } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CalendarDays, ListChecks, Plus, Repeat2, Sparkles, type LucideProps } from "lucide-react";
+import { useSection } from "@/lib/section";
 import { Sheet } from "@/components/ui/Sheet";
+import { IconTile, type TileColor } from "@/components/ui/IconTile";
+import { DirectionalIcon } from "@/components/ui/DirectionalIcon";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { ROUTES } from "@/lib/constants/routes";
@@ -34,24 +38,41 @@ export function useQuickAdd(): QuickAddContextValue {
 }
 
 export function QuickAddProvider({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
   const router = useRouter();
   const { t } = useTranslation();
   const settings = useSettings();
+  const { section: sectionKey } = useSection();
   const nlpEnabled = settings?.intelligence.nlpEnabled ?? true;
   const [sheetOpen, setSheetOpen] = useState(false);
 
+  // `routini://add` deep link → Home with ?add-smart=1 → open the smart sheet.
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      if (new URLSearchParams(window.location.search).get("add-smart") === "1") {
+        setSheetOpen(true);
+        window.history.replaceState(null, "", window.location.pathname);
+      }
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, []);
+
+  // A "+" on a section screen adds to that section directly; Home / Search /
+  // More open the smart quick-add sheet. Uses the shared section detector so it
+  // stays correct regardless of trailing slashes.
   const section = useMemo(() => {
-    if (pathname === ROUTES.appointments)
-      return { route: ROUTES.appointments, icon: CalendarDays, label: t("appointments.addAppointment") };
-    if (pathname === ROUTES.tasks)
-      return { route: ROUTES.tasks, icon: ListChecks, label: t("tasks.newTaskTitle") };
-    if (pathname === ROUTES.habits)
-      return { route: ROUTES.habits, icon: Repeat2, label: t("habits.addHabit") };
-    if (pathname === ROUTES.adhkar)
-      return { route: ROUTES.adhkar, icon: Sparkles, label: t("adhkar.addDhikr") };
-    return null;
-  }, [pathname, t]);
+    switch (sectionKey) {
+      case "appointments":
+        return { route: ROUTES.appointments, label: t("appointments.addAppointment") };
+      case "tasks":
+        return { route: ROUTES.tasks, label: t("tasks.newTaskTitle") };
+      case "habits":
+        return { route: ROUTES.habits, label: t("habits.addHabit") };
+      case "adhkar":
+        return { route: ROUTES.adhkar, label: t("adhkar.addDhikr") };
+      default:
+        return null;
+    }
+  }, [sectionKey, t]);
 
   function trigger() {
     if (section) {
@@ -63,15 +84,17 @@ export function QuickAddProvider({ children }: { children: ReactNode }) {
 
   const value: QuickAddContextValue = {
     trigger,
-    icon: section?.icon ?? Sparkles,
+    // Section screens: a plain "+" (the action is unambiguous). Home/Search/More:
+    // a spark, signalling the smart natural-language add.
+    icon: section ? Plus : Sparkles,
     label: section?.label ?? t("home.quickAddFabLabel"),
     isSmart: !section,
   };
 
-  const manualOptions = [
-    { href: `${ROUTES.appointments}?add=1`, label: t("appointments.addAppointment"), icon: CalendarDays },
-    { href: `${ROUTES.tasks}?add=1`, label: t("tasks.newTaskTitle"), icon: ListChecks },
-    { href: `${ROUTES.habits}?add=1`, label: t("habits.addHabit"), icon: Repeat2 },
+  const manualOptions: { href: string; label: string; icon: ComponentType<LucideProps>; color: TileColor }[] = [
+    { href: `${ROUTES.appointments}?add=1`, label: t("appointments.addAppointment"), icon: CalendarDays, color: "indigo" },
+    { href: `${ROUTES.tasks}?add=1`, label: t("tasks.newTaskTitle"), icon: ListChecks, color: "amber" },
+    { href: `${ROUTES.habits}?add=1`, label: t("habits.addHabit"), icon: Repeat2, color: "green" },
   ];
 
   return (
@@ -99,10 +122,13 @@ export function QuickAddProvider({ children }: { children: ReactNode }) {
                     setSheetOpen(false);
                     router.push(opt.href);
                   }}
-                  className="flex items-center gap-3 rounded-lg border border-border bg-surface px-4 py-3 text-start transition-colors duration-150 hover:bg-surface-hover"
+                  className="flex items-center gap-3 rounded-xl border border-border bg-surface px-3.5 py-3 text-start transition-colors duration-150 hover:bg-surface-hover active:scale-[0.99]"
                 >
-                  <Icon className="size-5 text-accent-purple" />
-                  <span className="text-sm font-medium text-text-primary">{opt.label}</span>
+                  <IconTile color={opt.color}>
+                    <Icon className="size-5" />
+                  </IconTile>
+                  <span className="flex-1 text-sm font-semibold text-text-primary">{opt.label}</span>
+                  <DirectionalIcon className="size-4 text-text-tertiary" />
                 </button>
               );
             })}

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/row_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@color/routiniSurface"
+    android:paddingHorizontal="10dp"
+    android:paddingVertical="9dp"
+    android:layoutDirection="rtl">
+
+    <TextView
+        android:id="@+id/row_check"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:gravity="center"
+        android:text="○"
+        android:textColor="@color/routiniTeal"
+        android:textSize="14sp"
+        android:paddingEnd="6dp" />
+
+    <TextView
+        android:id="@+id/row_badge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/routiniTeal"
+        android:textSize="10sp"
+        android:paddingEnd="8dp" />
+
+    <TextView
+        android:id="@+id/row_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:textColor="@color/routiniText"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/row_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/routiniTextSecondary"
+        android:textSize="11sp"
+        android:paddingStart="8dp" />
+</LinearLayout>

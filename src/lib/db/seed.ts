@@ -1,5 +1,6 @@
 import { db } from "@/lib/db/schema";
 import { settingsRepository } from "@/lib/db/repositories/settingsRepository";
+import { taskCategoriesRepository } from "@/lib/db/repositories/taskCategoriesRepository";
 import { generateId } from "@/lib/utils/id";
 import { createSyncMeta } from "@/lib/utils/sync";
 import { dateKey } from "@/lib/time/dateUtils";
@@ -14,7 +15,7 @@ import type {
 } from "@/lib/types";
 import { addDays } from "date-fns";
 
-export const CURRENT_SEED_VERSION = 1;
+export const CURRENT_SEED_VERSION = 3;
 
 function iso(date: Date): string {
   return date.toISOString();
@@ -25,6 +26,8 @@ const CATEGORY_DEFS: { kind: DhikrCategoryKind; title: string; order: number }[]
   { kind: "evening", title: "أذكار المساء", order: 1 },
   { kind: "after_prayer", title: "أذكار بعد الصلاة", order: 2 },
   { kind: "sleep", title: "أذكار النوم", order: 3 },
+  { kind: "wake", title: "أذكار الاستيقاظ", order: 4 },
+  { kind: "istighfar", title: "الاستغفار", order: 5 },
 ];
 
 const DHIKR_DEFS: Record<DhikrCategoryKind, { text: string; targetCount: number; source?: string }[]> = {
@@ -74,13 +77,53 @@ const DHIKR_DEFS: Record<DhikrCategoryKind, { text: string; targetCount: number;
     { text: "الْحَمْدُ لِلَّهِ", targetCount: 33, source: "صحيح البخاري" },
     { text: "اللَّهُ أَكْبَرُ", targetCount: 34, source: "صحيح البخاري" },
   ],
+  wake: [
+    {
+      text: "الْحَمْدُ لِلَّهِ الَّذِي أَحْيَانَا بَعْدَ مَا أَمَاتَنَا وَإِلَيْهِ النُّشُورُ",
+      targetCount: 1,
+      source: "صحيح البخاري",
+    },
+    {
+      text: "لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ",
+      targetCount: 1,
+      source: "صحيح البخاري",
+    },
+    {
+      text: "الْحَمْدُ لِلَّهِ الَّذِي عَافَانِي فِي جَسَدِي وَرَدَّ عَلَيَّ رُوحِي وَأَذِنَ لِي بِذِكْرِهِ",
+      targetCount: 1,
+      source: "سنن الترمذي",
+    },
+  ],
+  istighfar: [
+    { text: "أَسْتَغْفِرُ اللَّهَ", targetCount: 100, source: "صحيح مسلم" },
+    {
+      text: "أَسْتَغْفِرُ اللَّهَ الَّذِي لَا إِلَهَ إِلَّا هُوَ الْحَيَّ الْقَيُّومَ وَأَتُوبُ إِلَيْهِ",
+      targetCount: 3,
+      source: "سنن أبي داود",
+    },
+    {
+      text: "رَبِّ اغْفِرْ لِي وَتُبْ عَلَيَّ إِنَّكَ أَنْتَ التَّوَّابُ الرَّحِيمُ",
+      targetCount: 100,
+      source: "سنن الترمذي",
+    },
+    {
+      text: "اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَهَ إِلَّا أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ (سيد الاستغفار)",
+      targetCount: 1,
+      source: "صحيح البخاري",
+    },
+  ],
   custom: [],
 };
 
+/** Idempotent: only inserts categories (and their dhikr) whose `kind` is missing.
+ * Safe to re-run for existing users to pick up newly-added sections. */
 async function seedAdhkar() {
-  const categoryIdByKind: Partial<Record<DhikrCategoryKind, string>> = {};
+  const existing = await db.dhikrCategories.toArray();
+  const haveKinds = new Set(existing.map((c) => c.kind));
+  const items: Dhikr[] = [];
 
   for (const def of CATEGORY_DEFS) {
+    if (haveKinds.has(def.kind)) continue;
     const category: DhikrCategory = {
       id: generateId(),
       kind: def.kind,
@@ -90,18 +133,10 @@ async function seedAdhkar() {
       sync: createSyncMeta(),
     };
     await db.dhikrCategories.add(category);
-    categoryIdByKind[def.kind] = category.id;
-  }
-
-  const items: Dhikr[] = [];
-  for (const def of CATEGORY_DEFS) {
-    const categoryId = categoryIdByKind[def.kind];
-    if (!categoryId) continue;
-    const dhikrList = DHIKR_DEFS[def.kind];
-    dhikrList.forEach((d, index) => {
+    DHIKR_DEFS[def.kind].forEach((d, index) => {
       items.push({
         id: generateId(),
-        categoryId,
+        categoryId: category.id,
         text: d.text,
         targetCount: d.targetCount,
         source: d.source,
@@ -111,7 +146,7 @@ async function seedAdhkar() {
       });
     });
   }
-  await db.adhkar.bulkAdd(items);
+  if (items.length) await db.adhkar.bulkAdd(items);
 }
 
 async function seedAppointments() {
@@ -279,10 +314,16 @@ export async function seedIfNeeded(): Promise<void> {
   const settings = await settingsRepository.ensureDefaults();
   if (settings.seedVersion >= CURRENT_SEED_VERSION) return;
 
+  await taskCategoriesRepository.ensureDefaults();
+  // seedAdhkar is idempotent per-kind — a fresh install gets every category,
+  // an existing (v1) user only gets the newly-added "wake" section.
   await seedAdhkar();
-  await seedAppointments();
-  await seedTasks();
-  await seedHabits();
+
+  if (settings.seedVersion < 1) {
+    await seedAppointments();
+    await seedTasks();
+    await seedHabits();
+  }
 
   await db.settings.update("singleton", { seedVersion: CURRENT_SEED_VERSION });
 }

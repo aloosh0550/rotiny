@@ -1,5 +1,7 @@
 "use client";
 
+import { motion } from "framer-motion";
+import { SPRING } from "@/lib/motion";
 import { cn } from "@/lib/utils/cn";
 
 export interface SwitchProps {
@@ -21,14 +23,15 @@ export function Switch({ checked, onCheckedChange, label, disabled, id }: Switch
       disabled={disabled}
       onClick={() => onCheckedChange(!checked)}
       className={cn(
-        "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200",
+        "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full px-0.5 transition-colors duration-200",
         "disabled:opacity-50 disabled:pointer-events-none",
-        checked ? "bg-accent-purple" : "bg-border-strong",
+        checked ? "bg-brand justify-end" : "bg-border-strong justify-start",
       )}
     >
-      <span
-        style={{ insetInlineStart: checked ? "24px" : "2px" }}
-        className="absolute inline-block size-[18px] rounded-full bg-white shadow-sm transition-[inset-inline-start] duration-200"
+      <motion.span
+        layout
+        transition={SPRING.snappy}
+        className="block size-6 rounded-full bg-surface shadow-sm"
       />
     </button>
   );

@@ -34,11 +34,14 @@ export function DayView({ date, appointments }: DayViewProps) {
 
   if (occurrences.length === 0) {
     return (
-      <EmptyState
-        icon={<CalendarDays className="size-6" />}
-        title={t("appointments.noAppointments")}
-        subtitle={t("appointments.noAppointmentsSubtitle")}
-      />
+      <div className="flex min-h-[40vh] items-center justify-center py-8">
+        <EmptyState
+          icon={<CalendarDays />}
+          title={t("appointments.noAppointments")}
+          subtitle={t("appointments.noAppointmentsSubtitle")}
+          className="w-full max-w-xs border-none bg-transparent"
+        />
+      </div>
     );
   }
 

@@ -2,8 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle2, Plus } from "lucide-react";
-import { IconButton } from "@/components/ui/IconButton";
+import { CheckCircle2 } from "lucide-react";
 import { Sheet } from "@/components/ui/Sheet";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -61,11 +60,6 @@ function AdhkarPageContent() {
     router.replace(`${ROUTES.adhkar}?category=${categoryId}`, { scroll: false });
   }
 
-  function openAdd() {
-    setEditingDhikr(null);
-    setSheetOpen(true);
-  }
-
   function openEdit(dhikr: Dhikr) {
     setEditingDhikr(dhikr);
     setSheetOpen(true);
@@ -110,25 +104,15 @@ function AdhkarPageContent() {
     dhikrList!.every((d) => (progressMap.get(d.id)?.count ?? 0) >= d.targetCount);
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      <div className="flex items-center gap-2">
-        <div className="min-w-0 flex-1">
-          <CategoryTabs
-            categories={categories}
-            value={selectedCategoryId ?? ""}
-            onChange={handleCategoryChange}
-          />
-        </div>
-        <IconButton
-          icon={<Plus className="size-5" />}
-          label={t("adhkar.addDhikr")}
-          variant="primary"
-          onClick={openAdd}
-        />
-      </div>
+    <div className="flex flex-col gap-3 p-4">
+      <CategoryTabs
+        categories={categories}
+        value={selectedCategoryId ?? ""}
+        onChange={handleCategoryChange}
+      />
 
       {allComplete && (
-        <div className="flex items-center gap-2 rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm font-medium text-success">
+        <div className="flex items-center gap-2 rounded-lg border border-accent-green/30 bg-accent-green-soft px-4 py-2.5 text-[13px] font-semibold text-accent-green">
           <CheckCircle2 className="size-4 shrink-0" />
           {t("adhkar.allCompleteTitle")}
         </div>

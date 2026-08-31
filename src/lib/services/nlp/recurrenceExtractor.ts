@@ -70,7 +70,7 @@ export function extractRecurrence(text: string): ExtractedField<RecurrenceRule> 
   }
 
   // Bare daily marker: "كل يوم" / "يوميا" / "يومياً" / "daily" / "every day"
-  const dailyRe = /(كل\s+يوم|يوميا|يومياً|daily|every day)/i;
+  const dailyRe = /(كل\s+يوم|يومي[ًا]{1,2}|daily|every day)/iu;
   m = dailyRe.exec(text);
   if (m) {
     const rule: RecurrenceRule = { frequency: "daily", interval: 1 };

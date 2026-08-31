@@ -55,7 +55,7 @@ export function DhikrCard({ dhikr, progress, onEdit }: DhikrCardProps) {
       padding="none"
       className={cn(
         "overflow-hidden transition-colors duration-200",
-        completed && "border-success/40 bg-success/5",
+        completed && "border-accent-green/40 bg-accent-green-soft",
       )}
     >
       <div className="flex items-center justify-end gap-0.5 px-1.5 pt-1.5">
@@ -88,7 +88,9 @@ export function DhikrCard({ dhikr, progress, onEdit }: DhikrCardProps) {
         onIncrement={handleIncrement}
         label={`${dhikr.text} — ${t("adhkar.progressLabel", { count, target: dhikr.targetCount })}`}
       >
-        <p className="text-[19px] leading-[1.85] text-text-primary">{dhikr.text}</p>
+        <p className="text-[20px] leading-arabic-relaxed text-text-primary" dir="auto">
+          {dhikr.text}
+        </p>
         {dhikr.transliteration && (
           <p className="text-sm leading-relaxed text-text-secondary">{dhikr.transliteration}</p>
         )}

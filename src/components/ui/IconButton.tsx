@@ -19,7 +19,7 @@ const sizeClasses = {
 const variantClasses = {
   ghost: "bg-transparent text-text-secondary hover:bg-surface-hover hover:text-text-primary",
   surface: "bg-surface text-text-primary border border-border hover:bg-surface-hover",
-  primary: "bg-accent-purple text-text-on-accent hover:bg-accent-purple-strong shadow-sm",
+  primary: "bg-accent text-accent-ink hover:bg-accent-strong shadow-sm",
 };
 
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
@@ -32,8 +32,8 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
       aria-label={label}
       title={label}
       className={cn(
-        "inline-flex items-center justify-center rounded-full transition-colors duration-150",
-        "active:scale-95 disabled:opacity-50 disabled:pointer-events-none",
+        "inline-flex items-center justify-center rounded-full transition-[background-color,transform,color] duration-150",
+        "active:scale-90 disabled:opacity-50 disabled:pointer-events-none",
         sizeClasses[size],
         variantClasses[variant],
         className,

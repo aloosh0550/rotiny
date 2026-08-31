@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Input } from "@/components/ui/Input";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { TimePicker } from "@/components/ui/TimePicker";
@@ -10,7 +10,11 @@ import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { ConflictBanner } from "./ConflictBanner";
+import { ReminderEditor } from "@/components/shared/ReminderEditor";
+import { ColorPicker } from "@/components/shared/ColorPicker";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
+import { useSettings } from "@/lib/hooks/useSettings";
+import { onEntityMutated } from "@/lib/services/effects/appEffects";
 import { localCalendarService } from "@/lib/services/calendar/LocalCalendarService";
 import type { CalendarEventInput } from "@/lib/services/calendar/ICalendarService";
 import { combineDateAndTime, dateKey } from "@/lib/time/dateUtils";
@@ -18,7 +22,6 @@ import { generateId } from "@/lib/utils/id";
 import type { Appointment, RecurrenceRule, Reminder } from "@/lib/types";
 
 type RecurrenceOption = "none" | "daily" | "weekly" | "custom";
-type ReminderOption = "none" | "at" | "15" | "30" | "60";
 
 export interface AppointmentFormProps {
   /** When provided, the form edits this appointment instead of creating a new one. */
@@ -40,7 +43,8 @@ interface FormValues {
   notes: string;
   recurrenceFreq: RecurrenceOption;
   byWeekday: number[];
-  reminderOption: ReminderOption;
+  reminders: Reminder[];
+  color: string;
 }
 
 const WEEKDAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
@@ -63,21 +67,6 @@ function recurrenceOptionFromRule(rule: RecurrenceRule | null | undefined): Recu
   return "custom";
 }
 
-function reminderOptionFromReminders(reminders: Reminder[]): ReminderOption {
-  if (!reminders || reminders.length === 0) return "none";
-  const offset = reminders[0].offsetMinutes;
-  if (offset === 0) return "at";
-  if (offset === 15) return "15";
-  if (offset === 60) return "60";
-  return "30";
-}
-
-function remindersFromOption(option: ReminderOption): Reminder[] {
-  if (option === "none") return [];
-  const offsetMinutes = option === "at" ? 0 : Number(option);
-  return [{ id: generateId(), offsetMinutes, method: "inapp" }];
-}
-
 function buildRecurrenceRule(freq: RecurrenceOption, byWeekday: number[]): RecurrenceRule | null {
   if (freq === "none") return null;
   if (freq === "daily") return { frequency: "daily", interval: 1 };
@@ -93,6 +82,8 @@ export function AppointmentForm({
 }: AppointmentFormProps) {
   const { t } = useTranslation();
   const toast = useToast();
+  const settings = useSettings();
+  const remindersTouched = useRef(Boolean(appointment));
 
   const [values, setValues] = useState<FormValues>(() => {
     if (appointment) {
@@ -107,7 +98,8 @@ export function AppointmentForm({
         notes: appointment.notes ?? "",
         recurrenceFreq: recurrenceOptionFromRule(appointment.recurrence),
         byWeekday: appointment.recurrence?.byWeekday ?? [start.getDay()],
-        reminderOption: reminderOptionFromReminders(appointment.reminders),
+        reminders: appointment.reminders ?? [],
+        color: appointment.color ?? "",
       };
     }
     const startTime = initialTime ?? toTimeInputValue(initialDate);
@@ -120,9 +112,28 @@ export function AppointmentForm({
       notes: "",
       recurrenceFreq: "none",
       byWeekday: [initialDate.getDay()],
-      reminderOption: "30",
+      reminders: [{ id: generateId(), offsetMinutes: 30, method: "push" }],
+      color: "",
     };
   });
+
+  // Seed reminders for a new appointment from the user's default lead-times (once).
+  useEffect(() => {
+    if (remindersTouched.current || !settings) return;
+    remindersTouched.current = true;
+    const defaults = settings.notifications.reminderDefaults ?? [];
+    const id = window.setTimeout(() => {
+      setValues((prev) => ({
+        ...prev,
+        reminders: defaults.map((offsetMinutes) => ({
+          id: generateId(),
+          offsetMinutes,
+          method: "push" as const,
+        })),
+      }));
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [settings]);
 
   const [endTimeError, setEndTimeError] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -152,11 +163,17 @@ export function AppointmentForm({
         notes: values.notes.trim() || undefined,
         location: values.location.trim() || undefined,
         recurrence: buildRecurrenceRule(values.recurrenceFreq, values.byWeekday),
-        reminders: remindersFromOption(values.reminderOption),
+        reminders: values.reminders,
+        color: values.color || undefined,
       };
       const saved = appointment
         ? await localCalendarService.updateEvent(appointment.id, input)
         : await localCalendarService.createEvent(input);
+      await onEntityMutated({
+        type: "appointment",
+        op: appointment ? "update" : "create",
+        entity: saved,
+      });
       toast.show(appointment ? t("common.updated") : t("common.saved"), { tone: "success" });
       onSaved(saved);
     } finally {
@@ -200,14 +217,6 @@ export function AppointmentForm({
     { value: "daily", label: t("appointments.recurrenceDaily") },
     { value: "weekly", label: t("appointments.recurrenceWeekly") },
     { value: "custom", label: t("appointments.recurrenceCustom") },
-  ];
-
-  const reminderOptions: SelectOption[] = [
-    { value: "none", label: t("appointments.reminderNone") },
-    { value: "at", label: t("appointments.reminderAtTime") },
-    { value: "15", label: t("appointments.reminderMinutesBefore", { minutes: 15 }) },
-    { value: "30", label: t("appointments.reminderMinutesBefore", { minutes: 30 }) },
-    { value: "60", label: t("appointments.reminderHoursBefore", { hours: 1 }) },
   ];
 
   const weekdayLabels = WEEKDAY_KEYS.map((key, index) => ({ index, label: t(`weekdays.${key}`) }));
@@ -274,13 +283,15 @@ export function AppointmentForm({
           </div>
         </div>
       )}
-      <Select
-        name="appointment-reminder"
-        label={t("appointments.fieldReminder")}
-        options={reminderOptions}
-        value={values.reminderOption}
-        onChange={(e) => update("reminderOption", e.target.value as ReminderOption)}
+      <ReminderEditor
+        value={values.reminders}
+        onChange={(reminders) => {
+          remindersTouched.current = true;
+          update("reminders", reminders);
+        }}
+        labelText={t("appointments.fieldReminder")}
       />
+      <ColorPicker value={values.color} onChange={(color) => update("color", color)} />
       <Input
         name="appointment-location"
         label={t("appointments.fieldLocation")}

@@ -1,6 +1,12 @@
 "use client";
 
-import { BarChart3, Settings as SettingsIcon, Sparkles } from "lucide-react";
+import {
+  BarChart3,
+  CalendarRange,
+  Settings as SettingsIcon,
+  Sparkles,
+  TrendingUp,
+} from "lucide-react";
 import { MenuList, type MenuListItem } from "@/components/more/MenuList";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
 import { ROUTES } from "@/lib/constants/routes";
@@ -9,7 +15,9 @@ export default function MorePage() {
   const { t } = useTranslation();
 
   const items: MenuListItem[] = [
+    { href: ROUTES.plan, icon: <CalendarRange className="size-5" />, label: t("plan.pageTitle") },
     { href: ROUTES.adhkar, icon: <Sparkles className="size-5" />, label: t("nav.adhkar") },
+    { href: ROUTES.summary, icon: <TrendingUp className="size-5" />, label: t("summary.pageTitle") },
     { href: ROUTES.statistics, icon: <BarChart3 className="size-5" />, label: t("more.statistics") },
     { href: ROUTES.settings, icon: <SettingsIcon className="size-5" />, label: t("more.settings") },
   ];

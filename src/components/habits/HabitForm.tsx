@@ -6,13 +6,15 @@ import { Chip } from "@/components/ui/Chip";
 import { Switch } from "@/components/ui/Switch";
 import { TimePicker } from "@/components/ui/TimePicker";
 import { Button } from "@/components/ui/Button";
+import { ReminderEditor } from "@/components/shared/ReminderEditor";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
 import { useNow } from "@/lib/hooks/useNow";
 import { habitsRepository } from "@/lib/db/repositories";
+import { onEntityMutated } from "@/lib/services/effects/appEffects";
 import { generateId } from "@/lib/utils/id";
 import { createSyncMeta } from "@/lib/utils/sync";
 import type { TranslationKey } from "@/lib/i18n/paths";
-import type { Habit, HabitTarget, RecurrenceRule } from "@/lib/types";
+import type { Habit, HabitTarget, RecurrenceRule, Reminder } from "@/lib/types";
 
 export interface HabitFormProps {
   habit?: Habit;
@@ -65,6 +67,7 @@ export function HabitForm({ habit, onSaved, onCancel }: HabitFormProps) {
     habit?.target?.value != null ? String(habit.target.value) : "",
   );
   const [targetUnit, setTargetUnit] = useState(habit?.target?.unit ?? "");
+  const [reminders, setReminders] = useState<Reminder[]>(habit?.reminders ?? []);
 
   const [saving, setSaving] = useState(false);
 
@@ -123,12 +126,14 @@ export function HabitForm({ habit, onSaved, onCancel }: HabitFormProps) {
     setSaving(true);
     try {
       if (habit) {
-        await habitsRepository.update(habit.id, {
+        const updated = await habitsRepository.update(habit.id, {
           title: trimmedTitle,
           recurrence,
           timeOfDay,
           target,
+          reminders,
         });
+        await onEntityMutated({ type: "habit", op: "update", entity: updated });
       } else {
         const newHabit: Habit = {
           id: generateId(),
@@ -136,10 +141,11 @@ export function HabitForm({ habit, onSaved, onCancel }: HabitFormProps) {
           recurrence,
           timeOfDay,
           target,
-          reminders: [],
+          reminders,
           sync: createSyncMeta(),
         };
         await habitsRepository.create(newHabit);
+        await onEntityMutated({ type: "habit", op: "create", entity: newHabit });
       }
       onSaved();
     } finally {
@@ -234,6 +240,8 @@ export function HabitForm({ habit, onSaved, onCancel }: HabitFormProps) {
           </div>
         )}
       </div>
+
+      <ReminderEditor value={reminders} onChange={setReminders} />
 
       <div className="flex gap-2 pt-1">
         <Button type="button" variant="secondary" fullWidth onClick={onCancel}>

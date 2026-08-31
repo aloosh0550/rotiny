@@ -11,6 +11,15 @@ export function ServiceWorkerManager() {
   useEffect(() => {
     if (process.env.NODE_ENV !== "production") return;
     if (!("serviceWorker" in navigator)) return;
+    // Inside the Capacitor Android WebView the app shell is already on-device and
+    // there is no origin server — a network-first SW would only ever fall back to
+    // the offline page. Skip registration there; the web PWA keeps its SW.
+    if (
+      typeof window !== "undefined" &&
+      (window as { Capacitor?: unknown }).Capacitor !== undefined
+    ) {
+      return;
+    }
 
     let refreshing = false;
     const onControllerChange = () => {

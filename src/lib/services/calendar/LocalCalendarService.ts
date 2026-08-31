@@ -27,6 +27,8 @@ class LocalCalendarService implements ICalendarService {
       allDay: false,
       recurrence: input.recurrence ?? null,
       reminders: input.reminders ?? [],
+      participants: input.participants,
+      color: input.color,
       calendarProviderId: "local",
       sync: createSyncMeta(),
     };

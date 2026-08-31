@@ -59,11 +59,11 @@ export function EndOfDaySummaryCard() {
   }
 
   return (
-    <section className="flex flex-col gap-2 px-4">
+    <section className="flex flex-col gap-2 px-4 md:px-0">
       <Card className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <p className="text-sm font-semibold text-text-primary">{t("home.dailySummaryTitle")}</p>
-          <span className="text-sm font-bold text-accent-purple">{Math.round(rate * 100)}%</span>
+          <span className="text-sm font-bold text-accent">{Math.round(rate * 100)}%</span>
         </div>
         <ProgressBar value={rate} tone="success" />
         <p className="text-xs text-text-tertiary">

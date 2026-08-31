@@ -99,7 +99,9 @@ export const EN_LOCATION_KEYWORDS = [
   "club",
 ];
 
-export const EN_TASK_VERBS = ["call", "finish", "send", "review", "prepare", "buy", "pay", "submit", "follow up", "print", "book"];
+export const EN_TASK_VERBS = ["call", "finish", "send", "review", "prepare", "buy", "pay", "submit", "follow up", "print", "book", "complete"];
+
+export const EN_REMINDER_CUES = ["remind me to", "remind me", "reminder", "remember to"];
 
 export const EN_APPOINTMENT_CUES = ["meeting", "appointment", "interview", "call with", "visit"];
 export const EN_HABIT_DESIRE_VERBS = ["i want to", "i wanna", "i'd like to", "want to"];

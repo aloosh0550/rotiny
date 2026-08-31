@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { Check } from "lucide-react";
+import { ListTodo } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PriorityDot } from "@/components/ui/PriorityDot";
+import { Checkbox } from "@/components/ui/Checkbox";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
 import { useTasks } from "@/lib/hooks/useTasks";
 import { tasksRepository } from "@/lib/db/repositories";
+import { onEntityMutated } from "@/lib/services/effects/appEffects";
 import { ROUTES } from "@/lib/constants/routes";
 import { PRIORITY_ORDER } from "@/lib/types";
 import { formatTime } from "@/lib/time/dateUtils";
@@ -20,6 +22,7 @@ export function ImportantTaskCard() {
   const top = pending
     ?.slice()
     .sort((a, b) => {
+      if ((b.pinned ? 1 : 0) !== (a.pinned ? 1 : 0)) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
       const pDiff = PRIORITY_ORDER.indexOf(a.priority) - PRIORITY_ORDER.indexOf(b.priority);
       if (pDiff !== 0) return pDiff;
       if (a.dueAt && b.dueAt) return a.dueAt.localeCompare(b.dueAt);
@@ -29,27 +32,28 @@ export function ImportantTaskCard() {
     })[0];
 
   return (
-    <section className="flex flex-col gap-2 px-4">
-      <h3 className="text-sm font-semibold text-text-secondary">{t("home.importantTask")}</h3>
+    <section className="flex flex-col gap-2 px-4 md:px-0">
+      <h3 className="text-[13px] font-semibold text-text-secondary">{t("home.importantTask")}</h3>
       {!tasks ? (
-        <Card className="h-20 animate-pulse" />
+        <div className="h-[68px] skeleton rounded-lg" />
       ) : top ? (
-        <Link href={ROUTES.task(top.id)}>
-          <Card interactive className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                void tasksRepository.update(top.id, {
-                  status: "completed",
-                  completedAt: new Date().toISOString(),
-                });
-              }}
-              className="flex size-7 shrink-0 items-center justify-center rounded-full border-2 border-border-strong hover:border-accent-purple"
-              aria-label={t("tasks.markComplete")}
-            >
-              <Check className="size-3.5 text-transparent" />
-            </button>
+        <Card interactive className="flex items-center gap-3 p-0">
+          <div className="ps-4">
+            <Checkbox
+              size="md"
+              checked={false}
+              label={t("tasks.markComplete")}
+              onCheckedChange={() =>
+                void tasksRepository
+                  .update(top.id, {
+                    status: "completed",
+                    completedAt: new Date().toISOString(),
+                  })
+                  .then((u) => onEntityMutated({ type: "task", op: "update", entity: u }))
+              }
+            />
+          </div>
+          <Link href={ROUTES.task(top.id)} className="flex min-w-0 flex-1 items-center gap-3 py-3 pe-4">
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-text-primary">{top.title}</p>
               {top.dueAt && (
@@ -57,10 +61,10 @@ export function ImportantTaskCard() {
               )}
             </div>
             <PriorityDot priority={top.priority} />
-          </Card>
-        </Link>
+          </Link>
+        </Card>
       ) : (
-        <EmptyState title={t("home.noImportantTasks")} />
+        <EmptyState compact icon={<ListTodo />} title={t("home.noImportantTasks")} />
       )}
     </section>
   );

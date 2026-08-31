@@ -24,19 +24,29 @@ export function AppointmentCard({ appointment, occurrenceStart, occurrenceEnd }:
   return (
     <Link href={ROUTES.appointment(appointment.id)}>
       <Card interactive padding="md" className="flex gap-3">
-        <div className="flex w-16 shrink-0 flex-col items-start text-xs">
-          <span className="font-semibold text-text-secondary">{formatTime(start.toISOString(), locale)}</span>
-          <span className="text-text-tertiary">{formatTime(end.toISOString(), locale)}</span>
+        <div className="flex shrink-0 flex-col items-center">
+          <span className="rounded-md bg-accent-soft px-2 py-0.5 text-xs font-bold tabular-nums text-accent-fg">
+            {formatTime(start.toISOString(), locale)}
+          </span>
+          <span className="mt-1 w-px flex-1 bg-border" />
+          <span className="text-[11px] tabular-nums text-text-tertiary">
+            {formatTime(end.toISOString(), locale)}
+          </span>
         </div>
-        <div className="min-w-0 flex-1 border-s border-border ps-3">
-          <div className="flex items-center gap-1.5">
-            <p className="truncate text-sm font-semibold text-text-primary">{appointment.title}</p>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start gap-1.5">
+            <p className="min-w-0 flex-1 text-sm font-semibold leading-snug text-text-primary line-clamp-2" dir="auto">
+              {appointment.title}
+            </p>
             {appointment.recurrence && (
-              <Repeat className="size-3.5 shrink-0 text-text-tertiary" aria-label={t("appointments.fieldRecurrence")} />
+              <Repeat
+                className="mt-0.5 size-3.5 shrink-0 text-text-tertiary"
+                aria-label={t("appointments.fieldRecurrence")}
+              />
             )}
           </div>
           {appointment.location && (
-            <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-text-tertiary">
+            <p className="mt-1 flex items-center gap-1 truncate text-xs text-text-tertiary">
               <MapPin className="size-3.5 shrink-0" />
               {appointment.location}
             </p>

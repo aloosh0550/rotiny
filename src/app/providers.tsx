@@ -7,6 +7,8 @@ import { ToastProvider } from "@/components/ui/Toast";
 import { SplashScreen } from "@/components/shared/SplashScreen";
 import { DbBootstrap } from "@/components/shared/DbBootstrap";
 import { ServiceWorkerManager } from "@/components/shared/ServiceWorkerManager";
+import { NativeBootstrap } from "@/components/shared/NativeBootstrap";
+import { DeepLinkHandler } from "@/components/shared/DeepLinkHandler";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
@@ -15,6 +17,8 @@ export function Providers({ children }: { children: ReactNode }) {
         <ToastProvider>
           <DbBootstrap />
           <ServiceWorkerManager />
+          <NativeBootstrap />
+          <DeepLinkHandler />
           <SplashScreen>{children}</SplashScreen>
         </ToastProvider>
       </I18nProvider>

@@ -9,6 +9,9 @@ export interface CalendarEventInput {
   location?: string;
   recurrence?: RecurrenceRule | null;
   reminders?: Reminder[];
+  /** Extended-palette colour key for category-style colour coding. */
+  color?: string;
+  participants?: string[];
 }
 
 /**

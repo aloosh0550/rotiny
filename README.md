@@ -59,6 +59,19 @@ npm run dev
 | `npm run lint` | فحص جودة الكود بـ ESLint. |
 | `npm run test` | تشغيل الاختبارات بـ Vitest. |
 
+## تطبيق أندرويد (APK)
+
+المشروع مُهيّأ بالكامل مع **Capacitor** لتغليفه كتطبيق أندرويد أصلي (`com.routini.app`).
+
+```bash
+npm run cap:sync      # بناء نسخة ثابتة (out/) ومزامنتها مع مشروع أندرويد
+npm run android:apk   # بناء APK للتصحيح
+# الناتج: android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+يتطلّب البناء: Android SDK (‏platform 36 و build-tools 36) و JDK 17 أو 21.
+البيانات المحلية (IndexedDB) تعمل داخل التطبيق كما في المتصفّح.
+
 ## بنية المشروع
 
 ```
