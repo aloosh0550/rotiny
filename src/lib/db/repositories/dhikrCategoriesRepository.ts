@@ -2,7 +2,7 @@ import { db } from "@/lib/db/schema";
 import type { DhikrCategory } from "@/lib/types";
 import { makeSyncedRepository } from "./helpers";
 
-const base = makeSyncedRepository<DhikrCategory>(db.dhikrCategories);
+const base = makeSyncedRepository<DhikrCategory>(db.dhikrCategories, "dhikrCategories");
 
 export const dhikrCategoriesRepository = {
   ...base,

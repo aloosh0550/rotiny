@@ -7,6 +7,7 @@ import { AuthProvider } from "@/lib/auth/AuthProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 import { SplashScreen } from "@/components/shared/SplashScreen";
 import { DbBootstrap } from "@/components/shared/DbBootstrap";
+import { SyncProvider } from "@/components/shared/SyncProvider";
 import { ServiceWorkerManager } from "@/components/shared/ServiceWorkerManager";
 import { NativeBootstrap } from "@/components/shared/NativeBootstrap";
 import { DeepLinkHandler } from "@/components/shared/DeepLinkHandler";
@@ -18,6 +19,7 @@ export function Providers({ children }: { children: ReactNode }) {
         <AuthProvider>
           <ToastProvider>
             <DbBootstrap />
+            <SyncProvider />
             <ServiceWorkerManager />
             <NativeBootstrap />
             <DeepLinkHandler />

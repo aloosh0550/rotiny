@@ -1,5 +1,4 @@
 import type { Appointment, Habit, Task } from "@/lib/types";
-import { syncQueueRepository } from "@/lib/db/repositories/syncQueueRepository";
 
 export type EffectEntityType = "task" | "appointment" | "habit" | "taskCategory";
 export type EffectOp = "create" | "update" | "delete";
@@ -31,19 +30,11 @@ export function registerEffectHandler(handler: EffectHandler): () => void {
  * write. Repositories stay pure.
  */
 export async function onEntityMutated(m: MutatedEntity): Promise<void> {
-  // Populate the cloud-sync queue (no backend yet — this makes it real for later).
-  try {
-    const syncType =
-      m.type === "taskCategory" ? "taskCategory" : (m.type as "task" | "appointment" | "habit");
-    await syncQueueRepository.enqueue({
-      entityType: syncType,
-      entityId: m.entity.id,
-      operation: m.op,
-      payload: m.op === "delete" ? null : m.entity,
-    });
-  } catch {
-    /* queue is best-effort */
-  }
+  // The cloud outbox is populated inside the repositories themselves
+  // (makeSyncedRepository), so every mutation — not just the ones routed through
+  // here — is captured. This seam only fans out to the local side-effects below
+  // and, when signed in, nudges the SyncEngine to flush.
+  void nudgeSync();
 
   await Promise.allSettled([
     ...handlers.map((h) => h(m)),
@@ -51,6 +42,16 @@ export async function onEntityMutated(m: MutatedEntity): Promise<void> {
     refreshWidget(),
     syncCalendar(m),
   ]);
+}
+
+/** Ask the SyncEngine to flush the outbox now (best-effort; no-op when signed out). */
+async function nudgeSync(): Promise<void> {
+  try {
+    const { syncEngine } = await import("@/lib/sync/SyncEngine");
+    await syncEngine.flush();
+  } catch {
+    /* ignore */
+  }
 }
 
 // Lazy-loaded so the web bundle never pulls native plugin code unless it runs.

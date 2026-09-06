@@ -30,12 +30,25 @@ jobs:
       - name: Build (static export)
         run: npm run build
 
-      - name: Guard — no secret-shaped strings in the client bundle
+      - name: Guard — no real secrets in the client bundle
         run: |
           set -e
-          # Fail if a service-role JWT, private key, or Gemini key ever ships to the client.
-          if grep -rIlE 'service_role|BEGIN (RSA |EC |OPENSSH |)PRIVATE KEY|AIza[0-9A-Za-z_-]{20,}' out .next/static 2>/dev/null; then
-            echo "::error::Secret-shaped string found in the client build output."
+          # Actual key material only (not library prefix checks like "sb_secret_").
+          #  - Supabase secret keys:            sb_secret_ + >=20 key chars
+          #  - Gemini / Google API keys:        AIza + >=30 chars
+          #  - PEM private keys
+          #  - a JWT whose payload contains "service_role"
+          PATTERN='sb_secret_[A-Za-z0-9_-]{20,}|AIza[0-9A-Za-z_-]{30,}|-----BEGIN [A-Z ]*PRIVATE KEY-----'
+          if grep -rIlE "$PATTERN" out .next/static 2>/dev/null; then
+            echo "::error::Real secret material found in the client build output."
             exit 1
           fi
-          echo "No secret-shaped strings in the client bundle."
+          if grep -rhoE 'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+' out .next/static 2>/dev/null \
+             | while read -r jwt; do
+                 payload=$(printf '%s' "$jwt" | cut -d. -f2 | tr '_-' '/+' | base64 -d 2>/dev/null || true)
+                 echo "$payload" | grep -q 'service_role' && echo FOUND
+               done | grep -q FOUND; then
+            echo "::error::A service_role JWT is present in the client build output."
+            exit 1
+          fi
+          echo "No real secrets in the client bundle."

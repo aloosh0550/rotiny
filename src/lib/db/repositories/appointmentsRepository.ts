@@ -2,7 +2,7 @@ import { db } from "@/lib/db/schema";
 import type { Appointment } from "@/lib/types";
 import { makeSyncedRepository } from "./helpers";
 
-const base = makeSyncedRepository<Appointment>(db.appointments);
+const base = makeSyncedRepository<Appointment>(db.appointments, "appointments");
 
 export const appointmentsRepository = {
   ...base,
