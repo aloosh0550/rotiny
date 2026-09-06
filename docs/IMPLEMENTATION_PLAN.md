@@ -151,7 +151,7 @@ cloud-first once they're set.
 | Phase | Content | DoD |
 |---|---|---|
 | **0 · Cloud-first plan** ✅ | this doc + `GAP_MATRIX.md` + `CURRENT_STATE.md` updated | committed |
-| **1 · Cloud foundation (code, env-gated)** | `@supabase/supabase-js`; `src/lib/config/env.ts`; `src/lib/supabase/client.ts` (null when unconfigured); `src/lib/auth/AuthProvider.tsx` (Email + Google; inert when unconfigured); native `routini://auth/callback`; sign-in screen (shown only when Supabase is configured); `.env.example`; **`supabase/migrations/0001_initial_schema.sql`** (schema + RLS + triggers + realtime for the existing entities — a review file, NOT executed here); CI workflow | app unchanged when no env; `tsc/lint/test/build` green; APK builds; SQL reviewed by owner; **owner then creates the Supabase project + runs the migration + sets env** |
+| **1 · Cloud foundation (code, env-gated)** | `@supabase/supabase-js`; `src/lib/config/env.ts`; `src/lib/supabase/client.ts` (null when unconfigured); `src/lib/auth/AuthProvider.tsx` (Email + Google; inert when unconfigured); native `routini://auth/callback`; sign-in screen (shown only when Supabase is configured); `.env.example`; **`supabase/migrations/20260906120000_initial_schema.sql`** (schema + RLS + triggers + realtime for the existing entities — a review file, NOT executed here); CI workflow | app unchanged when no env; `tsc/lint/test/build` green; APK builds; SQL reviewed by owner; **owner then creates the Supabase project + runs the migration + sets env** |
 | **2 · DataStore + SyncEngine + cache** | `DataStore` seam; `CloudStore` + `CacheStore`; repos re-implemented (same interface); `SyncEngine` (initial pull · Realtime reconcile · outbox flush · conflict inbox); one-time local→cloud migration offer; sign-out wipe | with env set: two devices see each other in ~1 s; offline write → queued → flushed; conflict → inbox; fresh device works after pull. Without env: current Dexie behavior, all tests green. |
 | **3 · Core UX + Navigation** | nav rework (الرئيسية · اليوم · العادات/التتبّع · المجالات · المزيد); Home "الآن" shell; `<ProgressMeter>`; no-pressure copy; **متأخر** surface; empty/skeleton/error parity; demo-data opt-in | QA 360/393 RTL+dark clean; existing screens relocated not changed; accents intact |
 | **4 · Home + Today + Daily Plan + Energy** | `daily_plans` + `daily_energy` (+RLS/Realtime); `EnergyCheckIn`; **deterministic `localPlanner`** ("المخطط الذكي", not AI) — الآن/التالي/buckets from time+priority+deadline+energy; persisted plan + history + "لماذا الآن؟" + regenerate; overload trim; basic reschedule (never auto-delete); deterministic "أنا متأخر" | plan persists cloud-side + syncs; energy changes ordering; complete-anywhere updates الآن + % live; planner unit-tested |
@@ -189,7 +189,7 @@ cloud-first once they're set.
 ## STOP points (owner intervention required)
 
 1. **Create the Supabase project** — owner's account. Then provide `NEXT_PUBLIC_SUPABASE_URL` + anon key (safe). `service_role` key stays with the owner.
-2. **Run `supabase/migrations/0001_initial_schema.sql`** on that project (owner runs it, or approves me applying it via the Supabase CLI once linked).
+2. **Run `supabase/migrations/20260906120000_initial_schema.sql`** on that project (owner runs it, or approves me applying it via the Supabase CLI once linked).
 3. **Configure Google OAuth** (Google Cloud console → client ID/secret → paste into Supabase).
 4. Later: Gemini API key (Phase 12), FCM (Phase 10), SMS provider if Phone OTP is ever wanted (Phase 15).
 

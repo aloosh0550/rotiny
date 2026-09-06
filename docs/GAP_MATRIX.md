@@ -17,7 +17,7 @@ Phase numbering = `IMPLEMENTATION_PLAN.md` v3.
 |---|---|---|---|---|---|---|
 | A1 | No backend, no deps | `@supabase/supabase-js` client, env-gated (null when unconfigured) | dep + `src/lib/supabase/client.ts`, `src/lib/config/env.ts` | `package.json`, new files | **M** | **1** |
 | A2 | No auth | Supabase Auth — **Email (magic link) + Google**; Phone OTP deferred | `src/lib/auth/AuthProvider.tsx`, sign-in screen, `routini://auth/callback` in `DeepLinkService`/`DeepLinkHandler`, `capacitor.config.ts` | **M** (code) / **H** (live) | **1** |
-| A3 | No cloud schema | Postgres schema for existing entities (`profiles, tasks, appointments, task_categories, habits, habit_completions, dhikr_categories, adhkar, dhikr_progress`) + RLS + `updated_at`/`version` triggers + Realtime publication | **`supabase/migrations/0001_initial_schema.sql`** (review file, not run here) | **H** (when applied) | **1** (file) · owner runs it |
+| A3 | No cloud schema | Postgres schema for existing entities (`profiles, tasks, appointments, task_categories, habits, habit_completions, dhikr_categories, adhkar, dhikr_progress`) + RLS + `updated_at`/`version` triggers + Realtime publication | **`supabase/migrations/20260906120000_initial_schema.sql`** (review file, not run here) | **H** (when applied) | **1** (file) · owner runs it |
 | A4 | `output:"export"` | **unchanged** — server logic → Supabase Edge Functions | — | — | — |
 | A5 | No `.env` | `.env.example` with `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (+ later `GEMINI_*` as Edge secrets, not here) | `.env.example` | **L** | **1** |
 | A6 | No CI | `.github/workflows/ci.yml` — tsc + lint + vitest + build + client-bundle secret scan | new file | **L** | **1** |
