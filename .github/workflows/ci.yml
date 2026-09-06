@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Tests
+        run: npm run test
+
+      - name: Build (static export)
+        run: npm run build
+
+      - name: Guard — no secret-shaped strings in the client bundle
+        run: |
+          set -e
+          # Fail if a service-role JWT, private key, or Gemini key ever ships to the client.
+          if grep -rIlE 'service_role|BEGIN (RSA |EC |OPENSSH |)PRIVATE KEY|AIza[0-9A-Za-z_-]{20,}' out .next/static 2>/dev/null; then
+            echo "::error::Secret-shaped string found in the client build output."
+            exit 1
+          fi
+          echo "No secret-shaped strings in the client bundle."

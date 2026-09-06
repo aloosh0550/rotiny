@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { I18nProvider } from "@/lib/i18n/I18nProvider";
+import { AuthProvider } from "@/lib/auth/AuthProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 import { SplashScreen } from "@/components/shared/SplashScreen";
 import { DbBootstrap } from "@/components/shared/DbBootstrap";
@@ -14,13 +15,15 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider>
       <I18nProvider>
-        <ToastProvider>
-          <DbBootstrap />
-          <ServiceWorkerManager />
-          <NativeBootstrap />
-          <DeepLinkHandler />
-          <SplashScreen>{children}</SplashScreen>
-        </ToastProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <DbBootstrap />
+            <ServiceWorkerManager />
+            <NativeBootstrap />
+            <DeepLinkHandler />
+            <SplashScreen>{children}</SplashScreen>
+          </ToastProvider>
+        </AuthProvider>
       </I18nProvider>
     </ThemeProvider>
   );
