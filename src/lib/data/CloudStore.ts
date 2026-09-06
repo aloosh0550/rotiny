@@ -79,6 +79,55 @@ export const cloudStore = {
     if (error) throw new Error(`remove ${table} ${id}: ${error.message}`);
   },
 
+  /** Read the user's `profiles.settings` blob (or null). */
+  async pullSettings(userId: string): Promise<Record<string, unknown> | null> {
+    const sb = await client();
+    if (!sb) return null;
+    const { data, error } = await sb
+      .from("profiles")
+      .select("settings, locale")
+      .eq("id", userId)
+      .maybeSingle();
+    if (error) throw new Error(`pullSettings: ${error.message}`);
+    if (!data) return null;
+    const s = (data.settings ?? {}) as Record<string, unknown>;
+    return Object.keys(s).length ? s : null;
+  },
+
+  /** Write the user's settings blob to `profiles`. */
+  async pushSettings(userId: string, settings: Record<string, unknown>): Promise<void> {
+    const sb = await client();
+    if (!sb) return;
+    const locale = typeof settings.locale === "string" ? settings.locale : "ar";
+    const { error } = await sb
+      .from("profiles")
+      .update({ settings, locale })
+      .eq("id", userId);
+    if (error) throw new Error(`pushSettings: ${error.message}`);
+  },
+
+  /** Subscribe to the user's `profiles` row. */
+  async subscribeSettings(
+    userId: string,
+    onChange: (settings: Record<string, unknown>) => void,
+  ): Promise<() => void> {
+    const sb = await client();
+    if (!sb) return () => {};
+    const channel = sb.channel(`routini-profile-${userId}`);
+    channel.on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${userId}` },
+      (payload) => {
+        const s = (payload.new as { settings?: Record<string, unknown> }).settings;
+        if (s && Object.keys(s).length) onChange(s);
+      },
+    );
+    await new Promise<void>((resolve) => channel.subscribe(() => resolve()));
+    return () => {
+      void sb.removeChannel(channel);
+    };
+  },
+
   /**
    * Subscribe to every synced table for the current user. `onChange` gets the
    * new model (or `{ id }` for a hard delete). Returns an unsubscribe fn.

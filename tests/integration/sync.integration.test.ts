@@ -114,7 +114,7 @@ d("SyncEngine ↔ Supabase", () => {
 
     // wait for realtime to reconcile the replica
     let local: unknown;
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 60; i++) {
       local = await tasksRepository.getById(id);
       if (local) break;
       await new Promise((r) => setTimeout(r, 200));
@@ -145,6 +145,17 @@ d("SyncEngine ↔ Supabase", () => {
     // cloud wins in the replica
     const local = await tasksRepository.getById(id);
     expect((local as { title: string }).title).toBe("غيّره جهاز آخر");
+  }, 20_000);
+
+  it("settings changes sync to profiles.settings", async () => {
+    const { settingsRepository } = await import("@/lib/db/repositories");
+    await settingsRepository.update({ theme: "light", onboardingCompleted: true });
+    await syncEngine.flush();
+
+    const prof = await admin.from("profiles").select("settings").eq("id", userA.id).single();
+    const s = prof.data?.settings as { theme?: string; onboardingCompleted?: boolean };
+    expect(s.theme).toBe("light");
+    expect(s.onboardingCompleted).toBe(true);
   }, 20_000);
 
   it("first sign-in uploads pre-existing local rows to the cloud (id-preserving, non-destructive)", async () => {

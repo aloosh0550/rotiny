@@ -35,6 +35,17 @@ begin
 end;
 $$;
 
+-- updated_at only (for tables without a `version` column, e.g. profiles)
+create or replace function public.set_updated_at_simple()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
 -- ---------------------------------------------------------------------------
 -- profiles  (1 row per user; holds the settings blob)
 -- ---------------------------------------------------------------------------
@@ -51,7 +62,7 @@ create table if not exists public.profiles (
 drop trigger if exists trg_profiles_updated_at on public.profiles;
 create trigger trg_profiles_updated_at
   before update on public.profiles
-  for each row execute function public.set_updated_at();
+  for each row execute function public.set_updated_at_simple();
 
 -- auto-create a profile row when a user signs up
 create or replace function public.handle_new_user()

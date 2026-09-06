@@ -14,6 +14,7 @@
 
 import { db } from "@/lib/db/schema";
 import { syncQueueRepository } from "@/lib/db/repositories/syncQueueRepository";
+import { settingsRepository } from "@/lib/db/repositories/settingsRepository";
 import { cloudStore } from "@/lib/data/CloudStore";
 import { DEXIE_TABLE, PG_TABLE, SYNCED_TABLES, type SyncedTable } from "@/lib/data/tables";
 import { modelToRow, type Model } from "@/lib/data/rowMapping";
@@ -126,15 +127,23 @@ class SyncEngineImpl {
     }
 
     await this.pullAll();
+    await this.pullSettings().catch(() => {});
     try {
       localStorage.setItem(PULLED_ONCE_KEY, "1");
     } catch {
       /* ignore */
     }
 
-    this.unsub = await cloudStore.subscribe(userId, (table, model, event) => {
+    const unsubRows = await cloudStore.subscribe(userId, (table, model, event) => {
       void this.applyRemote(table, model, event);
     });
+    const unsubSettings = await cloudStore.subscribeSettings(userId, (s) => {
+      void settingsRepository.applyRemote(s as never).catch(() => {});
+    });
+    this.unsub = () => {
+      unsubRows();
+      unsubSettings();
+    };
 
     await this.flush();
 
@@ -172,11 +181,38 @@ class SyncEngineImpl {
     }
   }
 
+  private async pullSettings(): Promise<void> {
+    if (!this.userId) return;
+    const cloud = await cloudStore.pullSettings(this.userId);
+    if (cloud) {
+      // cloud wins; migrateSettingsShape backfills any locally-known keys
+      await settingsRepository.applyRemote(cloud as never).catch(() => {});
+    }
+  }
+
+  private async pushSettings(): Promise<void> {
+    if (!this.userId) return;
+    const local = await settingsRepository.get();
+    if (local) {
+      await cloudStore.pushSettings(this.userId, local as unknown as Record<string, unknown>);
+    }
+  }
+
   /**
    * One-time: upload local rows that the cloud doesn't have yet (an existing
    * local-only user signing in for the first time). Never deletes anything.
    */
   private async uploadLocalOnce(userId: string): Promise<void> {
+    // settings: only push if the cloud profile has none yet
+    const cloudSettings = await cloudStore.pullSettings(userId).catch(() => null);
+    if (!cloudSettings) {
+      const local = await settingsRepository.get().catch(() => undefined);
+      if (local) {
+        await cloudStore
+          .pushSettings(userId, local as unknown as Record<string, unknown>)
+          .catch(() => {});
+      }
+    }
     for (const table of SYNCED_TABLES) {
       const dx = db.table(DEXIE_TABLE[table]);
       const rows = (await dx.toArray()) as Model[];
@@ -266,8 +302,12 @@ class SyncEngineImpl {
   }
 
   private async flushEntry(entry: SyncQueueEntry): Promise<void> {
+    if (entry.entityType === "settings") {
+      await this.pushSettings();
+      return;
+    }
     const pgTable = PG_TABLE[entry.entityType] as SyncedTable | undefined;
-    if (!pgTable) return; // settings / unknown — not synced this way
+    if (!pgTable) return; // unknown — not synced this way
     const userId = this.userId!;
     const dx = db.table(DEXIE_TABLE[pgTable]);
 
