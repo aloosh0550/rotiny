@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { CalendarRange } from "lucide-react";
 import { GreetingHeader } from "@/components/home/GreetingHeader";
+import { NowNextCard } from "@/components/home/NowNextCard";
 import { PrayerStrip } from "@/components/home/PrayerStrip";
 import { SmartSuggestionBanner } from "@/components/home/SmartSuggestionBanner";
 import { TodayOverviewCard } from "@/components/home/TodayOverviewCard";
@@ -23,6 +24,7 @@ export default function HomePage() {
   return (
     <div className="flex flex-col gap-4 pb-2">
       <GreetingHeader timeOfDay={timeOfDay} />
+      <NowNextCard />
       <PrayerStrip />
       <SmartSuggestionBanner />
       <TodayOverviewCard />

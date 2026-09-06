@@ -33,6 +33,10 @@ export const home = {
     viewSchedule: "عرض الجدول",
     emptyDayTitle: "يومك خفيف اليوم",
     emptyDaySubtitle: "لا مواعيد ولا مهام عاجلة — وقت جيد لإنجاز شيء لنفسك",
+    nowTitle: "الآن",
+    nextTitle: "التالي",
+    nowClearDay: "لا شيء عاجل الآن — أنت على ما يرام",
+    nowOverload: "اليوم مزدحم قليلًا — يمكنك تأجيل ما ليس ضروريًا",
   },
   en: {
     greetingMorning: "Good morning",
@@ -68,5 +72,9 @@ export const home = {
     viewSchedule: "View schedule",
     emptyDayTitle: "A light day ahead",
     emptyDaySubtitle: "No appointments or urgent tasks — a good time to do something for yourself",
+    nowTitle: "Now",
+    nextTitle: "Next",
+    nowClearDay: "Nothing urgent right now — you're on track",
+    nowOverload: "The day is a little full — you can move what isn't essential",
   },
 };
