@@ -1,4 +1,5 @@
 import { common, nav, weekdays, priority } from "./common";
+import { auth } from "./auth";
 import { onboarding } from "./onboarding";
 import { home } from "./home";
 import { appointments } from "./appointments";
@@ -23,6 +24,7 @@ export const ar = {
   nav: nav.ar,
   weekdays: weekdays.ar,
   priority: priority.ar,
+  auth: auth.ar,
   onboarding: onboarding.ar,
   home: home.ar,
   appointments: appointments.ar,
@@ -48,6 +50,7 @@ export const en: typeof ar = {
   nav: nav.en,
   weekdays: weekdays.en,
   priority: priority.en,
+  auth: auth.en,
   onboarding: onboarding.en,
   home: home.en,
   appointments: appointments.en,

@@ -25,6 +25,7 @@ import {
 import type { Session, User } from "@supabase/supabase-js";
 import { isSupabaseConfigured } from "@/lib/config/env";
 import { getSupabase } from "@/lib/supabase/client";
+import { isNativePlatform } from "@/lib/native/platform";
 
 export interface AuthState {
   /** True when Supabase env is present — i.e. cloud mode is possible. */
@@ -81,8 +82,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [configured]);
 
   const value = useMemo<AuthState>(() => {
-    const redirectTo =
-      typeof window !== "undefined" ? `${window.location.origin}${REDIRECT_PATH}` : undefined;
+    const redirectTo = isNativePlatform()
+      ? `routini://auth/callback`
+      : typeof window !== "undefined"
+        ? `${window.location.origin}${REDIRECT_PATH}`
+        : undefined;
 
     return {
       configured,

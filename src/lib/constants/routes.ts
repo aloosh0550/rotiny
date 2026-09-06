@@ -1,4 +1,6 @@
 export const ROUTES = {
+  signIn: "/sign-in",
+  authCallback: "/auth/callback",
   onboarding: "/onboarding",
   home: "/",
   appointments: "/appointments",

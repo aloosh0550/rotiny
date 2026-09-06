@@ -42,6 +42,9 @@ export function resolveDeepLink(url: string): ResolvedLink | null {
   const id = segments[1] ?? "";
 
   switch (host) {
+    case "auth":
+      // routini://auth/callback?code=... — hand the whole thing to the callback page.
+      return { path: `${ROUTES.authCallback}${query ? `?${query}` : ""}` };
     case "":
     case "home":
       return { path: ROUTES.home };
