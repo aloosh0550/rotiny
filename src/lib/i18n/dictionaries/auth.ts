@@ -16,8 +16,10 @@ export const auth = {
     signOut: "تسجيل الخروج",
     account: "الحساب",
     signedInAs: "مسجّل الدخول باسم",
-    offlineNotice: "أنت غير متصل — سترى آخر بيانات تمت مزامنتها.",
+    offlineNotice: "غير متصل — تُعرض آخر نسخة متزامنة.",
     syncPending: "{{count}} تغييرات بانتظار المزامنة",
+    allSynced: "كل شيء متزامن",
+    conflictsPending: "{{count}} تعارضات تحتاج مراجعتك",
   },
   en: {
     signInTitle: "Welcome to Routini",
@@ -36,7 +38,9 @@ export const auth = {
     signOut: "Sign out",
     account: "Account",
     signedInAs: "Signed in as",
-    offlineNotice: "You're offline — showing your last synced data.",
+    offlineNotice: "Offline — showing your last synced data.",
     syncPending: "{{count}} changes waiting to sync",
+    allSynced: "Everything synced",
+    conflictsPending: "{{count}} conflicts need your review",
   },
 };

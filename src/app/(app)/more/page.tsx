@@ -8,6 +8,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { MenuList, type MenuListItem } from "@/components/more/MenuList";
+import { AccountCard } from "@/components/more/AccountCard";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
 import { ROUTES } from "@/lib/constants/routes";
 
@@ -24,6 +25,9 @@ export default function MorePage() {
 
   return (
     <div className="flex flex-col gap-5 pb-6 pt-4">
+      <section className="px-4">
+        <AccountCard />
+      </section>
       <section className="px-4">
         <MenuList items={items} />
       </section>

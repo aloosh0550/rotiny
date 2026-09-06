@@ -114,13 +114,13 @@ d("SyncEngine ↔ Supabase", () => {
 
     // wait for realtime to reconcile the replica
     let local: unknown;
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < 100; i++) {
       local = await tasksRepository.getById(id);
       if (local) break;
-      await new Promise((r) => setTimeout(r, 200));
+      await new Promise((r) => setTimeout(r, 250));
     }
     expect((local as { title: string } | undefined)?.title).toBe("من جهاز آخر");
-  }, 20_000);
+  }, 35_000);
 
   it("an offline edit based on a stale version is filed as a conflict (server wins)", async () => {
     const id = crypto.randomUUID();

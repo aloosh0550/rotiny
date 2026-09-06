@@ -52,10 +52,13 @@ export interface SyncConflict {
 
 type Listener = (state: SyncState) => void;
 export interface SyncState {
-  status: "idle" | "syncing" | "offline" | "error";
+  /** null = cloud not active (signed out / unconfigured). */
+  status: "idle" | "syncing" | "offline" | "error" | null;
   pending: number;
   lastSyncedAt: string | null;
   conflicts: number;
+  /** the initial pull for this account has completed on this device */
+  ready: boolean;
 }
 
 function readCursor(t: string): string | null {
@@ -93,12 +96,23 @@ class SyncEngineImpl {
   private timer: ReturnType<typeof setInterval> | null = null;
   private running = false;
   private listeners = new Set<Listener>();
-  private state: SyncState = { status: "idle", pending: 0, lastSyncedAt: null, conflicts: 0 };
+  private state: SyncState = {
+    status: null,
+    pending: 0,
+    lastSyncedAt: null,
+    conflicts: 0,
+    ready: false,
+  };
 
   subscribe(fn: Listener): () => void {
     this.listeners.add(fn);
     fn(this.state);
-    return () => this.listeners.delete(fn);
+    return () => {
+      this.listeners.delete(fn);
+    };
+  }
+  getState(): SyncState {
+    return this.state;
   }
   private emit(patch: Partial<SyncState>) {
     this.state = { ...this.state, ...patch };
@@ -133,6 +147,7 @@ class SyncEngineImpl {
     } catch {
       /* ignore */
     }
+    this.emit({ ready: true, conflicts: readConflicts().length });
 
     const unsubRows = await cloudStore.subscribe(userId, (table, model, event) => {
       void this.applyRemote(table, model, event);
@@ -163,19 +178,26 @@ class SyncEngineImpl {
     if (typeof window !== "undefined") {
       window.removeEventListener("online", this.onOnline);
     }
+    this.emit({ status: null, ready: false, pending: 0 });
   }
 
   private onOnline = () => void this.flush();
 
-  /** Wipe the local replica + outbox (on sign-out). */
+  /**
+   * Wipe the local replica + outbox + per-row sync bookkeeping (on sign-out), so
+   * the next account on this device starts from a clean cache. Keeps the Dexie
+   * `settings` row but resets the synced parts to defaults.
+   */
   async wipeLocal(): Promise<void> {
     await this.stop();
     await Promise.all(SYNCED_TABLES.map((t) => db.table(DEXIE_TABLE[t]).clear()));
     await syncQueueRepository.clear();
+    await db.settings.delete("singleton").catch(() => {});
     try {
-      for (const t of SYNCED_TABLES) localStorage.removeItem(CURSOR_KEY(t));
-      localStorage.removeItem(CONFLICTS_KEY);
-      localStorage.removeItem(PULLED_ONCE_KEY);
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith("routini:sync:")) localStorage.removeItem(k);
+      }
     } catch {
       /* ignore */
     }
@@ -369,4 +391,46 @@ export function getSyncConflicts(): SyncConflict[] {
 }
 export function dismissConflict(id: string): void {
   writeConflicts(readConflicts().filter((c) => c.id !== id));
+}
+
+/**
+ * Re-apply the local ("mine") side of a conflict on top of the current server
+ * row: the user chose their version. Bumps off the latest server version so it
+ * is no longer stale, writes it locally, queues the push, and flushes.
+ */
+export async function reapplyConflict(c: SyncConflict): Promise<void> {
+  const dexieName = DEXIE_TABLE[c.table];
+  const dx = db.table(dexieName);
+  const current = (await dx.get(c.id)) as Model | undefined;
+  const merged: Model = {
+    ...(current ?? c.mine),
+    ...stripRowKeys(c.mine),
+    id: c.id,
+    sync: {
+      ...(current?.sync ?? c.mine.sync),
+      updatedAt: new Date().toISOString(),
+      syncStatus: "pending",
+      version: (current?.sync.version ?? c.mine.sync.version) + 1,
+    },
+  } as Model;
+  await dx.put(merged);
+  await db.syncQueue.add({
+    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    entityType: dexieName as never,
+    entityId: c.id,
+    operation: "update",
+    payload: null,
+    createdAt: new Date().toISOString(),
+    attempts: 0,
+  });
+  dismissConflict(c.id);
+  await syncEngine.flush();
+}
+
+/** domain fields of a model (drop id + sync). */
+function stripRowKeys(m: Model): Record<string, unknown> {
+  const { id, sync, ...rest } = m;
+  void id;
+  void sync;
+  return rest;
 }
