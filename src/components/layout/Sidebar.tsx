@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   BookOpen,
   CalendarDays,
+  CalendarRange,
   Home,
   ListChecks,
   MoreHorizontal,
@@ -24,10 +25,11 @@ export function Sidebar() {
 
   const items = [
     { href: ROUTES.home, label: t("nav.home"), icon: Home, exact: true },
-    { href: ROUTES.appointments, label: t("nav.appointments"), icon: CalendarDays, exact: false },
+    { href: ROUTES.plan, label: t("nav.today"), icon: CalendarRange, exact: false },
     { href: ROUTES.tasks, label: t("nav.tasks"), icon: ListChecks, exact: false },
     { href: ROUTES.habits, label: t("nav.habits"), icon: Repeat2, exact: false },
     { href: ROUTES.adhkar, label: t("nav.adhkar"), icon: BookOpen, exact: false },
+    { href: ROUTES.appointments, label: t("nav.appointments"), icon: CalendarDays, exact: false },
     { href: ROUTES.search, label: t("nav.search"), icon: Search, exact: false },
     { href: ROUTES.more, label: t("nav.more"), icon: MoreHorizontal, exact: false },
   ];
