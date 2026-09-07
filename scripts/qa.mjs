@@ -87,6 +87,28 @@ for (const width of [360, 393]) {
     await p.goto(B + path, { waitUntil: "domcontentloaded" });
     await p.addStyleTag({ content: SAFE }).catch(() => {});
     await p.waitForTimeout(1000);
+    // "taskform" — open the full task form Sheet (the options button on the quick-add bar)
+    if (name === "taskform") {
+      await p
+        .locator('button[aria-label]:has(svg.lucide-sliders-horizontal)')
+        .first()
+        .click({ timeout: 3000 })
+        .catch(async () => {
+          // fallback: 2nd button in the quick-add form row
+          await p.locator("form button").nth(0).click({ timeout: 2000 }).catch(() => {});
+        });
+      await p.waitForTimeout(700);
+      // scroll the sheet so the new fields (energy cost / planned-for / context) show
+      await p
+        .evaluate(() => {
+          const sc = [...document.querySelectorAll("form, [class*='overflow']")].find(
+            (el) => el.scrollHeight > el.clientHeight,
+          );
+          if (sc) sc.scrollTop = sc.scrollHeight;
+        })
+        .catch(() => {});
+      await p.waitForTimeout(400);
+    }
     const ov = await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     await p.screenshot({ path: `/tmp/qa/${width}_${name}.png` });
     console.log(`${width} ${name}`.padEnd(32), ov > 1 ? `⚠ overflow ${ov}px` : "ok");

@@ -147,6 +147,36 @@ d("SyncEngine ↔ Supabase", () => {
     expect((local as { title: string }).title).toBe("غيّره جهاز آخر");
   }, 20_000);
 
+  it("the new Phase-5 task fields round-trip to the cloud", async () => {
+    const id = crypto.randomUUID();
+    const areaId = crypto.randomUUID();
+    await tasksRepository.create({
+      id,
+      title: "مهمة بحقول جديدة",
+      hasTime: false,
+      priority: "normal",
+      status: "pending",
+      reminders: [],
+      energyCost: "high",
+      context: ["البيت", "مشاوير"],
+      plannedFor: "2026-07-01",
+      lifeAreaId: areaId,
+      sync: { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), deletedAt: null, syncStatus: "pending", remoteId: null, version: 1 },
+    });
+    await syncEngine.flush();
+
+    const r = await admin
+      .from("tasks")
+      .select("energy_cost, context, planned_for, life_area_id")
+      .eq("id", id)
+      .single();
+    expect(r.error).toBeNull();
+    expect(r.data!.energy_cost).toBe("high");
+    expect(r.data!.context).toEqual(["البيت", "مشاوير"]);
+    expect(r.data!.planned_for).toBe("2026-07-01");
+    expect(r.data!.life_area_id).toBe(areaId);
+  }, 20_000);
+
   it("daily plan + daily energy sync to the cloud", async () => {
     const { dailyPlansRepository, dailyEnergyRepository } = await import("@/lib/db/repositories");
     const day = "2026-06-15";

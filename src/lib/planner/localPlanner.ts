@@ -75,11 +75,23 @@ function bucketForHour(hour: number): Bucket {
 }
 
 /** Low energy → favour short/light items; high energy → tolerate heavy ones. */
-function energyAdjust(energy: EnergyLevel | null | undefined, durationMinutes: number): number {
+function energyAdjust(
+  energy: EnergyLevel | null | undefined,
+  durationMinutes: number,
+  cost?: "low" | "med" | "high" | null,
+): number {
   if (!energy || energy === "good" || energy === "medium") return 0;
-  if (energy === "low") return durationMinutes > 45 ? -35 : durationMinutes <= 15 ? 12 : 0;
-  // high
-  return durationMinutes > 45 ? 15 : 0;
+
+  if (energy === "low") {
+    let adj = durationMinutes > 45 ? -35 : durationMinutes <= 15 ? 12 : 0;
+    if (cost === "high") adj -= 30;
+    else if (cost === "low") adj += 15;
+    return adj;
+  }
+  // high energy — lean into the heavy work
+  let adj = durationMinutes > 45 ? 15 : 0;
+  if (cost === "high") adj += 15;
+  return adj;
 }
 
 function taskDuration(t: Task): number {
@@ -111,7 +123,7 @@ function scoreTask(t: Task, now: Date, energy: EnergyLevel | null | undefined): 
     }
   }
 
-  const adj = energyAdjust(energy, taskDuration(t));
+  const adj = energyAdjust(energy, taskDuration(t), t.energyCost);
   if (adj > 0 && !t.pinned && !t.dueAt) reason = "خفيفة ومناسبة لطاقتك الآن";
   score += adj;
 

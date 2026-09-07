@@ -79,7 +79,22 @@ export function TaskForm({ task, onSaved, onCancel }: TaskFormProps) {
   };
   const [recurrence, setRecurrence] = useState<RecurrenceRule | null>(task?.recurrence ?? null);
   const [notes, setNotes] = useState(task?.notes ?? "");
+  const [energyCost, setEnergyCost] = useState<"low" | "med" | "high" | "">(task?.energyCost ?? "");
+  const [plannedFor, setPlannedFor] = useState(task?.plannedFor ?? "");
+  const [contextTags, setContextTags] = useState<string[]>(task?.context ?? []);
+  const [contextDraft, setContextDraft] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Life Area / Goal links are preserved on edit; their pickers appear once
+  // those features exist (Phases 6–7).
+  const lifeAreaId = task?.lifeAreaId ?? null;
+  const goalId = task?.goalId ?? null;
+
+  function addContextTag() {
+    const v = contextDraft.trim();
+    if (v && !contextTags.includes(v)) setContextTags((s) => [...s, v]);
+    setContextDraft("");
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -110,6 +125,11 @@ export function TaskForm({ task, onSaved, onCancel }: TaskFormProps) {
         pinned,
         reminders,
         recurrence,
+        energyCost: energyCost || null,
+        plannedFor: plannedFor || null,
+        context: contextTags,
+        lifeAreaId,
+        goalId,
       };
 
       if (isEdit && task) {
@@ -200,6 +220,65 @@ export function TaskForm({ task, onSaved, onCancel }: TaskFormProps) {
         value={duration}
         onChange={(e) => setDuration(e.target.value)}
       />
+
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-semibold text-text-secondary">
+          {t("tasks.fieldEnergyCost")}
+        </span>
+        <div className="flex gap-2">
+          {(["low", "med", "high"] as const).map((lvl) => (
+            <button
+              key={lvl}
+              type="button"
+              onClick={() => setEnergyCost((c) => (c === lvl ? "" : lvl))}
+              className={`flex-1 rounded-lg border py-2 text-sm font-medium transition-colors ${
+                energyCost === lvl
+                  ? "border-accent bg-accent-soft text-accent-fg"
+                  : "border-border bg-surface text-text-secondary"
+              }`}
+            >
+              {t(`tasks.energy${lvl === "low" ? "Low" : lvl === "med" ? "Med" : "High"}`)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <DatePicker
+        label={t("tasks.fieldPlannedFor")}
+        value={plannedFor}
+        onChange={(e) => setPlannedFor(e.target.value)}
+      />
+
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-semibold text-text-secondary">{t("tasks.fieldContext")}</span>
+        {contextTags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {contextTags.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => setContextTags((s) => s.filter((x) => x !== tag))}
+                className="rounded-full bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent-fg"
+              >
+                {tag} ✕
+              </button>
+            ))}
+          </div>
+        )}
+        <Input
+          placeholder={t("tasks.contextPlaceholder")}
+          value={contextDraft}
+          dir="auto"
+          onChange={(e) => setContextDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addContextTag();
+            }
+          }}
+          onBlur={addContextTag}
+        />
+      </div>
 
       <Textarea
         label={t("tasks.fieldNotes")}

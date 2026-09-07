@@ -58,6 +58,16 @@ export interface Task {
   categoryId?: ID | null;
   /** "Most important" — surfaced first on Home, independent of priority. */
   pinned?: boolean;
+  /** Links to a Life Area (Phase 7). */
+  lifeAreaId?: ID | null;
+  /** Links to a Goal (Phase 7). */
+  goalId?: ID | null;
+  /** Effort weight for the planner: "low" | "med" | "high". */
+  energyCost?: "low" | "med" | "high" | null;
+  /** Free context tags, e.g. ["البيت", "مشاوير"]. */
+  context?: string[];
+  /** The day the user intends to do it (distinct from `dueAt`). YYYY-MM-DD. */
+  plannedFor?: string | null;
   sync: SyncMeta;
 }
 

@@ -76,8 +76,11 @@ async function refreshWidget(): Promise<void> {
 async function syncCalendar(m: MutatedEntity): Promise<void> {
   if (m.type !== "appointment") return;
   try {
-    const { calendarSync } = await import("@/lib/services/calendar/CalendarSyncService");
-    await calendarSync.onAppointmentMutated(m.op, m.entity as Appointment | { id: string });
+    const { getActiveCalendarProvider } = await import(
+      "@/lib/services/calendar/CalendarProviderService"
+    );
+    const provider = await getActiveCalendarProvider();
+    await provider?.onAppointmentMutated(m.op, m.entity as Appointment | { id: string });
   } catch {
     /* ignore */
   }

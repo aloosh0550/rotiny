@@ -92,6 +92,15 @@ describe("buildLocalPlan", () => {
     expect(plan.now?.id).toBe("pin");
   });
 
+  it("low energy demotes a high-energy-cost task below a low-cost one of equal length", () => {
+    const heavy = task({ id: "heavy", durationMinutes: 20, energyCost: "high" });
+    const light = task({ id: "light", durationMinutes: 20, energyCost: "low" });
+    const low = buildLocalPlan({ ...base(now), energy: "low", tasks: [heavy, light], appointments: [], habits: [] });
+    expect(low.now?.id).toBe("light");
+    const good = buildLocalPlan({ ...base(now), energy: "good", tasks: [heavy, light], appointments: [], habits: [] });
+    expect(good.now?.id).toBe("heavy"); // no adjustment at neutral energy → first wins
+  });
+
   it("low energy demotes a long task below a short one", () => {
     const long = task({ id: "long", durationMinutes: 90 });
     const short = task({ id: "short", durationMinutes: 10 });

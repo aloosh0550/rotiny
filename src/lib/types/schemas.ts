@@ -70,6 +70,11 @@ export const taskSchema = z.object({
   originTaskId: idSchema.nullable().optional(),
   categoryId: idSchema.nullable().optional(),
   pinned: z.boolean().optional(),
+  lifeAreaId: idSchema.nullable().optional(),
+  goalId: idSchema.nullable().optional(),
+  energyCost: z.enum(["low", "med", "high"]).nullable().optional(),
+  context: z.array(z.string()).optional(),
+  plannedFor: z.string().nullable().optional(),
   sync: syncMetaSchema,
 });
 
