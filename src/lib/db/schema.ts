@@ -16,6 +16,8 @@ import type {
   GoalMilestone,
   Review,
   Achievement,
+  AiConversation,
+  AiMemory,
   UserSettings,
   SyncQueueEntry,
 } from "@/lib/types";
@@ -46,6 +48,8 @@ export class RoutiniDB extends Dexie {
   goalMilestones!: Table<GoalMilestone, string>;
   reviews!: Table<Review, string>;
   achievements!: Table<Achievement, string>;
+  aiConversations!: Table<AiConversation, string>;
+  aiMemory!: Table<AiMemory, string>;
   settings!: Table<UserSettings, string>;
   syncQueue!: Table<SyncQueueEntry, string>;
 
@@ -126,6 +130,14 @@ export class RoutiniDB extends Dexie {
     this.version(6).stores({
       reviews: "id, [period+periodKey], sync.deletedAt",
       achievements: "id, key, sync.deletedAt",
+    });
+
+    // v7 — additive: AI conversations + user-managed AI memory (Phase 9). New
+    // stores only; nothing else is read or modified. Present but unused until
+    // the user turns AI on.
+    this.version(7).stores({
+      aiConversations: "id, sync.deletedAt",
+      aiMemory: "id, kind, sync.deletedAt",
     });
   }
 }

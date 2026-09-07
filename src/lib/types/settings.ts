@@ -63,6 +63,27 @@ export interface PrayerTimesSettings {
   notifyOffsetMinutes: number;
 }
 
+export type AiPersonality = "supportive" | "direct" | "concise" | "playful" | "analytical";
+export type AiProviderId = "gemini" | "none";
+
+/**
+ * AI is entirely opt-in. `enabled` off → no provider is ever constructed, no
+ * context is built, no request leaves the device. The core app is unaffected
+ * either way. No API key lives here or anywhere in the client — see
+ * `src/lib/ai/geminiProvider.ts`.
+ */
+export interface AiSettings {
+  enabled: boolean;
+  provider: AiProviderId;
+  /** the assistant's display name, e.g. "رفيق" */
+  assistantName: string;
+  personality: AiPersonality;
+  /** when off: no memory is written and none is sent in context */
+  memoryEnabled: boolean;
+  /** when off: chat still works but no task/habit/plan context is attached */
+  shareContext: boolean;
+}
+
 export interface CalendarIntegrationSettings {
   /** User has turned on device-calendar sync for appointments. */
   enabled: boolean;
@@ -81,6 +102,7 @@ export interface UserSettings {
   weekStartsOn: 0 | 1 | 6;
   notifications: NotificationPreferences;
   intelligence: IntelligenceSettings;
+  ai: AiSettings;
   calendarProvider: CalendarProviderId;
   calendarIntegration: CalendarIntegrationSettings;
   prayerTimes: PrayerTimesSettings;
@@ -128,6 +150,15 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   reminderDefaults: [30],
   quietHoursStart: "22:00",
   quietHoursEnd: "07:00",
+};
+
+export const DEFAULT_AI_SETTINGS: AiSettings = {
+  enabled: false,
+  provider: "gemini",
+  assistantName: "رفيق",
+  personality: "supportive",
+  memoryEnabled: true,
+  shareContext: true,
 };
 
 export const DEFAULT_INTELLIGENCE_SETTINGS: IntelligenceSettings = {

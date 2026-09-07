@@ -17,3 +17,4 @@ export {
   DEFAULT_LIFE_AREAS,
 } from "./areasGoalsRepositories";
 export { reviewsRepository, achievementsRepository } from "./reviewsRepositories";
+export { aiConversationsRepository, aiMemoryRepository } from "./aiRepositories";

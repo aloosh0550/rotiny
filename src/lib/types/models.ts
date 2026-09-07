@@ -294,3 +294,39 @@ export interface Achievement {
   progress: AchievementProgress;
   sync: SyncMeta;
 }
+
+/* ------------------------------------------------------------------ Phase 9 -- */
+
+export type AiMessageRole = "user" | "assistant";
+
+export interface AiMessage {
+  role: AiMessageRole;
+  content: string;
+  /** ISO timestamp */
+  ts: string;
+}
+
+export interface AiConversation {
+  id: ID;
+  title: string;
+  messages: AiMessage[];
+  pinned?: boolean;
+  sync: SyncMeta;
+}
+
+export type AiMemoryKind = "preference" | "pattern" | "fact";
+
+/**
+ * A single thing the assistant remembers about the user. Always user-visible,
+ * always deletable, and `enabled` can be turned off to keep it without using it.
+ * Nothing is stored here unless AI memory is on and a turn proposed it.
+ */
+export interface AiMemory {
+  id: ID;
+  kind: AiMemoryKind;
+  text: string;
+  source?: string | null;
+  enabled: boolean;
+  confidence?: number | null;
+  sync: SyncMeta;
+}

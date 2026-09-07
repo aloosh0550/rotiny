@@ -8,6 +8,7 @@ import {
   CalendarRange,
   ClipboardList,
   Settings as SettingsIcon,
+  Sparkles,
   Target,
   TrendingUp,
 } from "lucide-react";
@@ -20,6 +21,7 @@ export default function MorePage() {
   const { t } = useTranslation();
 
   const items: MenuListItem[] = [
+    { href: ROUTES.assistant, icon: <Sparkles className="size-5" />, label: t("assistant.pageTitle") },
     { href: ROUTES.goals, icon: <Target className="size-5" />, label: t("goals.pageTitle") },
     { href: ROUTES.adhkar, icon: <BookOpen className="size-5" />, label: t("nav.adhkar") },
     { href: ROUTES.appointments, icon: <CalendarDays className="size-5" />, label: t("nav.appointments") },

@@ -240,6 +240,30 @@ export const achievementSchema = z.object({
   sync: syncMetaSchema,
 });
 
+export const aiConversationSchema = z.object({
+  id: idSchema,
+  title: z.string(),
+  messages: z.array(
+    z.object({
+      role: z.enum(["user", "assistant"]),
+      content: z.string(),
+      ts: z.string(),
+    }),
+  ),
+  pinned: z.boolean().optional(),
+  sync: syncMetaSchema,
+});
+
+export const aiMemorySchema = z.object({
+  id: idSchema,
+  kind: z.enum(["preference", "pattern", "fact"]),
+  text: z.string(),
+  source: z.string().nullable().optional(),
+  enabled: z.boolean(),
+  confidence: z.number().nullable().optional(),
+  sync: syncMetaSchema,
+});
+
 // Settings shapes evolve version-to-version; keep the backup schema lenient so an
 // older/newer export still imports. `settingsRepository.migrateSettingsShape` fills gaps.
 const notificationPreferencesSchema = z.looseObject({ enabled: z.boolean() });
@@ -263,7 +287,7 @@ export const userSettingsSchema = z.looseObject({
 
 export const syncQueueEntrySchema = z.object({
   id: idSchema,
-  entityType: z.enum(["appointment", "task", "habit", "dhikr", "settings", "taskCategory", "dailyPlan", "dailyEnergy", "measurement", "lifeArea", "goal", "goalMilestone", "review", "achievement"]),
+  entityType: z.enum(["appointment", "task", "habit", "dhikr", "settings", "taskCategory", "dailyPlan", "dailyEnergy", "measurement", "lifeArea", "goal", "goalMilestone", "review", "achievement", "aiConversation", "aiMemory"]),
   entityId: idSchema,
   operation: z.enum(["create", "update", "delete"]),
   payload: z.unknown(),
@@ -292,6 +316,8 @@ export const backupDataSchema = z.object({
     goalMilestones: z.array(goalMilestoneSchema).optional(),
     reviews: z.array(reviewSchema).optional(),
     achievements: z.array(achievementSchema).optional(),
+    aiConversations: z.array(aiConversationSchema).optional(),
+    aiMemory: z.array(aiMemorySchema).optional(),
     settings: z.array(userSettingsSchema),
     syncQueue: z.array(syncQueueEntrySchema),
   }),
@@ -319,6 +345,8 @@ export interface BackupData {
     goalMilestones?: import("./models").GoalMilestone[];
     reviews?: import("./models").Review[];
     achievements?: import("./models").Achievement[];
+    aiConversations?: import("./models").AiConversation[];
+    aiMemory?: import("./models").AiMemory[];
     settings: import("./settings").UserSettings[];
     syncQueue: import("./settings").SyncQueueEntry[];
   };

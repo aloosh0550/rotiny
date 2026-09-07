@@ -4,6 +4,7 @@ import { energy } from "./energy";
 import { trackers } from "./trackers";
 import { areas, goals } from "./areas";
 import { reviews as reviewsDict, achievements as achievementsDict } from "./reviews";
+import { assistant as assistantDict, assistantSettings as assistantSettingsDict } from "./assistant";
 import { onboarding } from "./onboarding";
 import { home } from "./home";
 import { appointments } from "./appointments";
@@ -35,6 +36,8 @@ export const ar = {
   goals: goals.ar,
   reviews: reviewsDict.ar,
   achievements: achievementsDict.ar,
+  assistant: assistantDict.ar,
+  assistantSettings: assistantSettingsDict.ar,
   onboarding: onboarding.ar,
   home: home.ar,
   appointments: appointments.ar,
@@ -67,6 +70,8 @@ export const en: typeof ar = {
   goals: goals.en,
   reviews: reviewsDict.en,
   achievements: achievementsDict.en,
+  assistant: assistantDict.en,
+  assistantSettings: assistantSettingsDict.en,
   onboarding: onboarding.en,
   home: home.en,
   appointments: appointments.en,

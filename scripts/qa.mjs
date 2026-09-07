@@ -49,6 +49,8 @@ const SCREENS = [
   ["goals", "/goals/"],
   ["reviews", "/reviews/"],
   ["achievements", "/achievements/"],
+  ["assistant", "/assistant/"],
+  ["settings-ai", "/more/settings/ai/"],
   ["appointments", "/appointments/"],
   ["adhkar", "/adhkar/"],
   ["plan", "/plan/"],

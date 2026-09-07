@@ -280,6 +280,44 @@ d("SyncEngine ↔ Supabase", () => {
     expect((a.data!.progress as { current: number }).current).toBe(7);
   }, 20_000);
 
+  it("ai conversations + ai memory round-trip to the cloud (and RLS isolates them)", async () => {
+    const { aiConversationsRepository, aiMemoryRepository } = await import("@/lib/db/repositories");
+    const conv = await aiConversationsRepository.createWith({
+      role: "user",
+      content: "رتب يومي",
+      ts: new Date().toISOString(),
+    });
+    await aiConversationsRepository.appendMessages(conv.id, [
+      { role: "assistant", content: "لنبدأ بأهم مهمة.", ts: new Date().toISOString() },
+    ]);
+    const mem = await aiMemoryRepository.add("preference", "يفضّل الرياضة صباحًا", "assistant");
+    await syncEngine.flush();
+
+    const c = await admin
+      .from("ai_conversations")
+      .select("messages, title")
+      .eq("id", conv.id)
+      .single();
+    expect(c.error).toBeNull();
+    expect((c.data!.messages as unknown[]).length).toBe(2);
+    expect((c.data!.messages as { role: string }[])[1].role).toBe("assistant");
+
+    const m = await admin
+      .from("ai_memory")
+      .select("text, kind, enabled")
+      .eq("id", mem.id)
+      .single();
+    expect(m.error).toBeNull();
+    expect(m.data!.text).toBe("يفضّل الرياضة صباحًا");
+    expect(m.data!.enabled).toBe(true);
+
+    // user B cannot see either row
+    const bConv = await bClient.from("ai_conversations").select("id").eq("id", conv.id);
+    expect(bConv.data).toHaveLength(0);
+    const bMem = await bClient.from("ai_memory").select("id").eq("id", mem.id);
+    expect(bMem.data).toHaveLength(0);
+  }, 20_000);
+
   it("settings changes sync to profiles.settings", async () => {
     const { settingsRepository } = await import("@/lib/db/repositories");
     await settingsRepository.update({ theme: "light", onboardingCompleted: true });

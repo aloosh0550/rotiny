@@ -99,6 +99,7 @@ export const nav = {
   ar: {
     home: "الرئيسية",
     today: "اليوم",
+    assistant: "المساعد",
     areas: "المجالات",
     goals: "الأهداف",
     appointments: "مواعيدي",
@@ -111,6 +112,7 @@ export const nav = {
   en: {
     home: "Home",
     today: "Today",
+    assistant: "Assistant",
     areas: "Areas",
     goals: "Goals",
     appointments: "Appointments",

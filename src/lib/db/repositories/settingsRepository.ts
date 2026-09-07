@@ -2,6 +2,7 @@ import { db } from "@/lib/db/schema";
 import type { UserSettings } from "@/lib/types";
 import {
   DEFAULT_ADHKAR_TIMES,
+  DEFAULT_AI_SETTINGS,
   DEFAULT_CALENDAR_INTEGRATION,
   DEFAULT_INTELLIGENCE_SETTINGS,
   DEFAULT_NOTIFICATION_PREFERENCES,
@@ -37,6 +38,7 @@ export function createDefaultSettings(): UserSettings {
     weekStartsOn: 0,
     notifications: DEFAULT_NOTIFICATION_PREFERENCES,
     intelligence: DEFAULT_INTELLIGENCE_SETTINGS,
+    ai: DEFAULT_AI_SETTINGS,
     calendarProvider: "local",
     calendarIntegration: DEFAULT_CALENDAR_INTEGRATION,
     prayerTimes: DEFAULT_PRAYER_TIMES_SETTINGS,
@@ -60,6 +62,7 @@ function migrateSettingsShape(s: UserSettings): UserSettings {
     ...s,
     notifications,
     intelligence: { ...DEFAULT_INTELLIGENCE_SETTINGS, ...s.intelligence },
+    ai: { ...DEFAULT_AI_SETTINGS, ...s.ai },
     calendarIntegration: { ...DEFAULT_CALENDAR_INTEGRATION, ...s.calendarIntegration },
     prayerTimes: { ...DEFAULT_PRAYER_TIMES_SETTINGS, ...s.prayerTimes },
   };
