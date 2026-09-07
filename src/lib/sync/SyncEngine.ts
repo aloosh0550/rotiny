@@ -114,6 +114,10 @@ class SyncEngineImpl {
   getState(): SyncState {
     return this.state;
   }
+  /** The signed-in user id, or null (signed out / cloud unconfigured). */
+  currentUserId(): string | null {
+    return this.userId;
+  }
   private emit(patch: Partial<SyncState>) {
     this.state = { ...this.state, ...patch };
     for (const l of this.listeners) l(this.state);

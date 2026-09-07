@@ -8,3 +8,4 @@ export { adhkarRepository } from "./adhkarRepository";
 export { dhikrProgressRepository } from "./dhikrProgressRepository";
 export { settingsRepository, createDefaultSettings } from "./settingsRepository";
 export { syncQueueRepository } from "./syncQueueRepository";
+export { dailyPlansRepository, dailyEnergyRepository } from "./dailyRepositories";

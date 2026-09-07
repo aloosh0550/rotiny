@@ -1,5 +1,6 @@
 import type {
   CalendarProviderId,
+  EnergyLevel,
   ID,
   Priority,
   RecurrenceRule,
@@ -125,5 +126,39 @@ export interface DhikrProgress {
   date: string; // YYYY-MM-DD local key
   count: number;
   completedAt?: string | null;
+  sync: SyncMeta;
+}
+
+/* ------------------------------------------------------------------ Phase 4 -- */
+
+export type DailyPlanRefType = "task" | "appointment" | "habit";
+export type DailyPlanItemStatus = "pending" | "done" | "skipped" | "moved";
+export type DailyPlanBucket = "morning" | "afternoon" | "evening";
+
+export interface DailyPlanItem {
+  refType: DailyPlanRefType;
+  refId: ID;
+  bucket: DailyPlanBucket;
+  order: number;
+  status: DailyPlanItemStatus;
+  /** the planner's "لماذا الآن؟" line, captured at generation time */
+  reason?: string;
+}
+
+export interface DailyPlan {
+  /** deterministic: `<userId>:<YYYY-MM-DD>` (or `local:<date>` when signed out) */
+  id: ID;
+  date: string; // YYYY-MM-DD local key
+  energy?: EnergyLevel | null;
+  generatedBy: "local" | "ai" | "manual";
+  items: DailyPlanItem[];
+  regeneratedAt?: string | null;
+  sync: SyncMeta;
+}
+
+export interface DailyEnergy {
+  id: ID; // `<userId>:<YYYY-MM-DD>`
+  date: string; // YYYY-MM-DD local key
+  level: EnergyLevel;
   sync: SyncMeta;
 }

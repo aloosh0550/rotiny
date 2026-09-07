@@ -4,7 +4,15 @@ export type Priority = "important" | "normal" | "later";
 
 export const PRIORITY_ORDER: Priority[] = ["important", "normal", "later"];
 
-export type EntityType = "appointment" | "task" | "habit" | "dhikr";
+export type EntityType =
+  | "appointment"
+  | "task"
+  | "habit"
+  | "dhikr"
+  | "dailyPlan"
+  | "dailyEnergy";
+
+export type EnergyLevel = "high" | "good" | "medium" | "low";
 
 export type SyncStatus = "synced" | "pending" | "conflict";
 

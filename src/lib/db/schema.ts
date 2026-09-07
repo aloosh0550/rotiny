@@ -8,6 +8,8 @@ import type {
   DhikrCategory,
   Dhikr,
   DhikrProgress,
+  DailyPlan,
+  DailyEnergy,
   UserSettings,
   SyncQueueEntry,
 } from "@/lib/types";
@@ -30,6 +32,8 @@ export class RoutiniDB extends Dexie {
   dhikrCategories!: Table<DhikrCategory, string>;
   adhkar!: Table<Dhikr, string>;
   dhikrProgress!: Table<DhikrProgress, string>;
+  dailyPlans!: Table<DailyPlan, string>;
+  dailyEnergy!: Table<DailyEnergy, string>;
   settings!: Table<UserSettings, string>;
   syncQueue!: Table<SyncQueueEntry, string>;
 
@@ -86,6 +90,13 @@ export class RoutiniDB extends Dexie {
           );
         }
       });
+
+    // v3 — additive: persisted daily plan + daily energy (Phase 4). New stores
+    // only; no existing record is read or modified.
+    this.version(3).stores({
+      dailyPlans: "id, date, sync.deletedAt",
+      dailyEnergy: "id, date, sync.deletedAt",
+    });
   }
 }
 

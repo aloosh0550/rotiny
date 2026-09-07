@@ -140,6 +140,34 @@ export const dhikrProgressSchema = z.object({
   sync: syncMetaSchema,
 });
 
+const energyLevelSchema = z.enum(["high", "good", "medium", "low"]);
+
+export const dailyPlanSchema = z.object({
+  id: idSchema,
+  date: z.string(),
+  energy: energyLevelSchema.nullable().optional(),
+  generatedBy: z.enum(["local", "ai", "manual"]),
+  items: z.array(
+    z.object({
+      refType: z.enum(["task", "appointment", "habit"]),
+      refId: idSchema,
+      bucket: z.enum(["morning", "afternoon", "evening"]),
+      order: z.number(),
+      status: z.enum(["pending", "done", "skipped", "moved"]),
+      reason: z.string().optional(),
+    }),
+  ),
+  regeneratedAt: z.string().nullable().optional(),
+  sync: syncMetaSchema,
+});
+
+export const dailyEnergySchema = z.object({
+  id: idSchema,
+  date: z.string(),
+  level: energyLevelSchema,
+  sync: syncMetaSchema,
+});
+
 // Settings shapes evolve version-to-version; keep the backup schema lenient so an
 // older/newer export still imports. `settingsRepository.migrateSettingsShape` fills gaps.
 const notificationPreferencesSchema = z.looseObject({ enabled: z.boolean() });
@@ -163,7 +191,7 @@ export const userSettingsSchema = z.looseObject({
 
 export const syncQueueEntrySchema = z.object({
   id: idSchema,
-  entityType: z.enum(["appointment", "task", "habit", "dhikr", "settings", "taskCategory"]),
+  entityType: z.enum(["appointment", "task", "habit", "dhikr", "settings", "taskCategory", "dailyPlan", "dailyEnergy"]),
   entityId: idSchema,
   operation: z.enum(["create", "update", "delete"]),
   payload: z.unknown(),
@@ -184,6 +212,8 @@ export const backupDataSchema = z.object({
     dhikrCategories: z.array(dhikrCategorySchema),
     adhkar: z.array(dhikrSchema),
     dhikrProgress: z.array(dhikrProgressSchema),
+    dailyPlans: z.array(dailyPlanSchema).optional(),
+    dailyEnergy: z.array(dailyEnergySchema).optional(),
     settings: z.array(userSettingsSchema),
     syncQueue: z.array(syncQueueEntrySchema),
   }),
@@ -203,6 +233,8 @@ export interface BackupData {
     dhikrCategories: import("./models").DhikrCategory[];
     adhkar: import("./models").Dhikr[];
     dhikrProgress: import("./models").DhikrProgress[];
+    dailyPlans?: import("./models").DailyPlan[];
+    dailyEnergy?: import("./models").DailyEnergy[];
     settings: import("./settings").UserSettings[];
     syncQueue: import("./settings").SyncQueueEntry[];
   };

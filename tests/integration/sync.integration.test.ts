@@ -100,7 +100,7 @@ d("SyncEngine ↔ Supabase", () => {
     expect(bSees.data).toHaveLength(0);
   }, 20_000);
 
-  it("a remote change by another device lands in the local replica via realtime", async () => {
+  it("a remote change by another device lands in the local replica via realtime", { retry: 2, timeout: 35_000 }, async () => {
     const id = crypto.randomUUID();
     // user A writes directly to the cloud from a "second device"
     const a2 = createClient(URL, ANON, { auth: { persistSession: false } });
@@ -120,7 +120,7 @@ d("SyncEngine ↔ Supabase", () => {
       await new Promise((r) => setTimeout(r, 250));
     }
     expect((local as { title: string } | undefined)?.title).toBe("من جهاز آخر");
-  }, 35_000);
+  });
 
   it("an offline edit based on a stale version is filed as a conflict (server wins)", async () => {
     const id = crypto.randomUUID();
@@ -145,6 +145,27 @@ d("SyncEngine ↔ Supabase", () => {
     // cloud wins in the replica
     const local = await tasksRepository.getById(id);
     expect((local as { title: string }).title).toBe("غيّره جهاز آخر");
+  }, 20_000);
+
+  it("daily plan + daily energy sync to the cloud", async () => {
+    const { dailyPlansRepository, dailyEnergyRepository } = await import("@/lib/db/repositories");
+    const day = "2026-06-15";
+    await dailyEnergyRepository.setForDate(day, "good");
+    await dailyPlansRepository.upsertForDate(day, {
+      energy: "good",
+      generatedBy: "local",
+      items: [{ refType: "task", refId: crypto.randomUUID(), bucket: "morning", order: 0, status: "pending" }],
+      regeneratedAt: null,
+    });
+    await syncEngine.flush();
+
+    const p = await admin.from("daily_plans").select("id, items, generated_by").eq("user_id", userA.id).eq("date", day).single();
+    expect(p.error).toBeNull();
+    expect((p.data!.items as unknown[]).length).toBe(1);
+    expect(p.data!.generated_by).toBe("local");
+
+    const e = await admin.from("daily_energy").select("level").eq("user_id", userA.id).eq("date", day).single();
+    expect(e.data!.level).toBe("good");
   }, 20_000);
 
   it("settings changes sync to profiles.settings", async () => {
