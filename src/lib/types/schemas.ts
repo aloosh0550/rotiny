@@ -102,6 +102,19 @@ export const habitSchema = z.object({
   reminders: z.array(reminderSchema),
   color: z.string().optional(),
   archivedAt: z.string().nullable().optional(),
+  lifeAreaId: idSchema.nullable().optional(),
+  goalId: idSchema.nullable().optional(),
+  trackerKind: z.enum(["water", "exercise", "reading", "skill"]).nullable().optional(),
+  sync: syncMetaSchema,
+});
+
+export const measurementSchema = z.object({
+  id: idSchema,
+  refType: z.enum(["habit", "tracker", "goal", "custom"]),
+  refId: idSchema,
+  date: z.string(),
+  value: z.number(),
+  unit: z.string().nullable().optional(),
   sync: syncMetaSchema,
 });
 
@@ -196,7 +209,7 @@ export const userSettingsSchema = z.looseObject({
 
 export const syncQueueEntrySchema = z.object({
   id: idSchema,
-  entityType: z.enum(["appointment", "task", "habit", "dhikr", "settings", "taskCategory", "dailyPlan", "dailyEnergy"]),
+  entityType: z.enum(["appointment", "task", "habit", "dhikr", "settings", "taskCategory", "dailyPlan", "dailyEnergy", "measurement"]),
   entityId: idSchema,
   operation: z.enum(["create", "update", "delete"]),
   payload: z.unknown(),
@@ -219,6 +232,7 @@ export const backupDataSchema = z.object({
     dhikrProgress: z.array(dhikrProgressSchema),
     dailyPlans: z.array(dailyPlanSchema).optional(),
     dailyEnergy: z.array(dailyEnergySchema).optional(),
+    measurements: z.array(measurementSchema).optional(),
     settings: z.array(userSettingsSchema),
     syncQueue: z.array(syncQueueEntrySchema),
   }),
@@ -240,6 +254,7 @@ export interface BackupData {
     dhikrProgress: import("./models").DhikrProgress[];
     dailyPlans?: import("./models").DailyPlan[];
     dailyEnergy?: import("./models").DailyEnergy[];
+    measurements?: import("./models").Measurement[];
     settings: import("./settings").UserSettings[];
     syncQueue: import("./settings").SyncQueueEntry[];
   };

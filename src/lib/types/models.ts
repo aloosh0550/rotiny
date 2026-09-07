@@ -77,6 +77,9 @@ export interface HabitTarget {
   unit?: string;
 }
 
+/** A first-class tracker preset kind (a Habit configured for one). */
+export type TrackerKind = "water" | "exercise" | "reading" | "skill";
+
 export interface Habit {
   id: ID;
   title: string;
@@ -87,6 +90,26 @@ export interface Habit {
   reminders: Reminder[];
   color?: string;
   archivedAt?: string | null;
+  /** Links to a Life Area (Phase 7). */
+  lifeAreaId?: ID | null;
+  /** Links to a Goal (Phase 7). */
+  goalId?: ID | null;
+  /** Set when this habit is one of the first-class trackers. */
+  trackerKind?: TrackerKind | null;
+  sync: SyncMeta;
+}
+
+export type MeasurementRefType = "habit" | "tracker" | "goal" | "custom";
+
+/** A per-day numeric value for anything measurable (current vs. its target). */
+export interface Measurement {
+  /** deterministic: `<userId>:<refType>:<refId>:<YYYY-MM-DD>` */
+  id: ID;
+  refType: MeasurementRefType;
+  refId: ID;
+  date: string; // YYYY-MM-DD local key
+  value: number;
+  unit?: string | null;
   sync: SyncMeta;
 }
 

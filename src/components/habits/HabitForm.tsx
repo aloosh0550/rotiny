@@ -132,6 +132,10 @@ export function HabitForm({ habit, onSaved, onCancel }: HabitFormProps) {
           timeOfDay,
           target,
           reminders,
+          // preserve links / tracker identity through an edit
+          lifeAreaId: habit.lifeAreaId ?? null,
+          goalId: habit.goalId ?? null,
+          trackerKind: habit.trackerKind ?? null,
         });
         await onEntityMutated({ type: "habit", op: "update", entity: updated });
       } else {
@@ -142,6 +146,9 @@ export function HabitForm({ habit, onSaved, onCancel }: HabitFormProps) {
           timeOfDay,
           target,
           reminders,
+          lifeAreaId: null,
+          goalId: null,
+          trackerKind: null,
           sync: createSyncMeta(),
         };
         await habitsRepository.create(newHabit);

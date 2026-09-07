@@ -177,6 +177,26 @@ d("SyncEngine ↔ Supabase", () => {
     expect(r.data!.life_area_id).toBe(areaId);
   }, 20_000);
 
+  it("measurements sync to the cloud and increment correctly", async () => {
+    const { measurementsRepository } = await import("@/lib/db/repositories");
+    const habitId = crypto.randomUUID();
+    await measurementsRepository.addForDate("habit", habitId, "2026-08-01", 1, "كوب");
+    await measurementsRepository.addForDate("habit", habitId, "2026-08-01", 2, "كوب");
+    await syncEngine.flush();
+
+    const r = await admin
+      .from("measurements")
+      .select("value, unit, ref_type")
+      .eq("user_id", userA.id)
+      .eq("ref_id", habitId)
+      .eq("date", "2026-08-01")
+      .single();
+    expect(r.error).toBeNull();
+    expect(Number(r.data!.value)).toBe(3);
+    expect(r.data!.unit).toBe("كوب");
+    expect(r.data!.ref_type).toBe("habit");
+  }, 20_000);
+
   it("daily plan + daily energy sync to the cloud", async () => {
     const { dailyPlansRepository, dailyEnergyRepository } = await import("@/lib/db/repositories");
     const day = "2026-06-15";

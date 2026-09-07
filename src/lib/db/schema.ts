@@ -10,6 +10,7 @@ import type {
   DhikrProgress,
   DailyPlan,
   DailyEnergy,
+  Measurement,
   UserSettings,
   SyncQueueEntry,
 } from "@/lib/types";
@@ -34,6 +35,7 @@ export class RoutiniDB extends Dexie {
   dhikrProgress!: Table<DhikrProgress, string>;
   dailyPlans!: Table<DailyPlan, string>;
   dailyEnergy!: Table<DailyEnergy, string>;
+  measurements!: Table<Measurement, string>;
   settings!: Table<UserSettings, string>;
   syncQueue!: Table<SyncQueueEntry, string>;
 
@@ -96,6 +98,11 @@ export class RoutiniDB extends Dexie {
     this.version(3).stores({
       dailyPlans: "id, date, sync.deletedAt",
       dailyEnergy: "id, date, sync.deletedAt",
+    });
+
+    // v4 — additive: per-day numeric measurements (Phase 6). New store only.
+    this.version(4).stores({
+      measurements: "id, refId, date, [refType+refId], sync.deletedAt",
     });
   }
 }

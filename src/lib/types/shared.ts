@@ -10,7 +10,8 @@ export type EntityType =
   | "habit"
   | "dhikr"
   | "dailyPlan"
-  | "dailyEnergy";
+  | "dailyEnergy"
+  | "measurement";
 
 export type EnergyLevel = "high" | "good" | "medium" | "low";
 

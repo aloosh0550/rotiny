@@ -18,6 +18,7 @@ export const SYNCED_TABLES = [
   "dhikr_progress",
   "daily_plans",
   "daily_energy",
+  "measurements",
 ] as const;
 
 export type SyncedTable = (typeof SYNCED_TABLES)[number];
@@ -34,6 +35,7 @@ export const DEXIE_TABLE: Record<SyncedTable, string> = {
   dhikr_progress: "dhikrProgress",
   daily_plans: "dailyPlans",
   daily_energy: "dailyEnergy",
+  measurements: "measurements",
 };
 
 /** Reverse: Dexie table name -> Postgres table. */
