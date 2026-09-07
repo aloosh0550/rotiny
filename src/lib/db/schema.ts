@@ -11,6 +11,9 @@ import type {
   DailyPlan,
   DailyEnergy,
   Measurement,
+  LifeArea,
+  Goal,
+  GoalMilestone,
   UserSettings,
   SyncQueueEntry,
 } from "@/lib/types";
@@ -36,6 +39,9 @@ export class RoutiniDB extends Dexie {
   dailyPlans!: Table<DailyPlan, string>;
   dailyEnergy!: Table<DailyEnergy, string>;
   measurements!: Table<Measurement, string>;
+  lifeAreas!: Table<LifeArea, string>;
+  goals!: Table<Goal, string>;
+  goalMilestones!: Table<GoalMilestone, string>;
   settings!: Table<UserSettings, string>;
   syncQueue!: Table<SyncQueueEntry, string>;
 
@@ -103,6 +109,13 @@ export class RoutiniDB extends Dexie {
     // v4 — additive: per-day numeric measurements (Phase 6). New store only.
     this.version(4).stores({
       measurements: "id, refId, date, [refType+refId], sync.deletedAt",
+    });
+
+    // v5 — additive: Life Areas + Goals + Milestones (Phase 7). New stores only.
+    this.version(5).stores({
+      lifeAreas: "id, key, order, sync.deletedAt",
+      goals: "id, lifeAreaId, horizon, parentGoalId, sync.deletedAt",
+      goalMilestones: "id, goalId, order, sync.deletedAt",
     });
   }
 }

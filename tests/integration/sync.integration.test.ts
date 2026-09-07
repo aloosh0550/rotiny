@@ -177,6 +177,39 @@ d("SyncEngine ↔ Supabase", () => {
     expect(r.data!.life_area_id).toBe(areaId);
   }, 20_000);
 
+  it("life areas + goals + milestones round-trip to the cloud", async () => {
+    const { lifeAreasRepository, goalsRepository, goalMilestonesRepository } = await import(
+      "@/lib/db/repositories"
+    );
+    const areaId = crypto.randomUUID();
+    await lifeAreasRepository.create({
+      id: areaId, key: `k_${Date.now()}`, name: "التعلّم", icon: "graduation-cap",
+      color: "amber", order: 5, enabled: true, kind: "learning",
+      sync: { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), deletedAt: null, syncStatus: "pending", remoteId: null, version: 1 },
+    });
+    const goalId = crypto.randomUUID();
+    await goalsRepository.create({
+      id: goalId, lifeAreaId: areaId, title: "تعلّم الإنجليزية", horizon: "long",
+      targetValue: 100, targetUnit: "درس", status: "active", parentGoalId: null,
+      sync: { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), deletedAt: null, syncStatus: "pending", remoteId: null, version: 1 },
+    });
+    await goalMilestonesRepository.create({
+      id: crypto.randomUUID(), goalId, title: "المستوى الأول", currentValue: 3, done: false, order: 0,
+      sync: { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), deletedAt: null, syncStatus: "pending", remoteId: null, version: 1 },
+    });
+    await syncEngine.flush();
+
+    const a = await admin.from("life_areas").select("name, kind").eq("id", areaId).single();
+    expect(a.data?.name).toBe("التعلّم");
+    expect(a.data?.kind).toBe("learning");
+    const g = await admin.from("goals").select("title, life_area_id, horizon").eq("id", goalId).single();
+    expect(g.data?.title).toBe("تعلّم الإنجليزية");
+    expect(g.data?.life_area_id).toBe(areaId);
+    const ms = await admin.from("goal_milestones").select("current_value").eq("goal_id", goalId);
+    expect(ms.data).toHaveLength(1);
+    expect(Number(ms.data![0].current_value)).toBe(3);
+  }, 20_000);
+
   it("measurements sync to the cloud and increment correctly", async () => {
     const { measurementsRepository } = await import("@/lib/db/repositories");
     const habitId = crypto.randomUUID();

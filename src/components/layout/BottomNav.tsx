@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { BookOpen, CalendarRange, Home, ListChecks, Repeat2 } from "lucide-react";
+import { CalendarRange, Compass, Home, ListChecks, Repeat2 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
 import { SPRING } from "@/lib/motion";
 import { ROUTES } from "@/lib/constants/routes";
@@ -18,7 +18,7 @@ export function BottomNav() {
     { href: ROUTES.plan, label: t("nav.today"), icon: CalendarRange, exact: false },
     { href: ROUTES.tasks, label: t("nav.tasks"), icon: ListChecks, exact: false },
     { href: ROUTES.habits, label: t("nav.habits"), icon: Repeat2, exact: false },
-    { href: ROUTES.adhkar, label: t("nav.adhkar"), icon: BookOpen, exact: false },
+    { href: ROUTES.areas, label: t("nav.areas"), icon: Compass, exact: false },
   ];
 
   return (

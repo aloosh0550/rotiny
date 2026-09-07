@@ -146,6 +146,14 @@ class SyncEngineImpl {
 
     await this.pullAll();
     await this.pullSettings().catch(() => {});
+    // seed default Life Areas the cloud doesn't have yet (idempotent by key),
+    // then push them — after the pull so a 2nd device never key-duplicates.
+    try {
+      const { lifeAreasRepository } = await import("@/lib/db/repositories");
+      await lifeAreasRepository.ensureDefaults();
+    } catch {
+      /* ignore */
+    }
     try {
       localStorage.setItem(PULLED_ONCE_KEY, "1");
     } catch {

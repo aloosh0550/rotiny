@@ -1,12 +1,22 @@
 import type { Appointment, Habit, Task } from "@/lib/types";
 
-export type EffectEntityType = "task" | "appointment" | "habit" | "taskCategory";
+export type EffectEntityType =
+  | "task"
+  | "appointment"
+  | "habit"
+  | "taskCategory"
+  | "lifeArea"
+  | "goal"
+  | "goalMilestone"
+  | "measurement"
+  | "dailyPlan"
+  | "dailyEnergy";
 export type EffectOp = "create" | "update" | "delete";
 
 export interface MutatedEntity {
   type: EffectEntityType;
   op: EffectOp;
-  entity: Task | Appointment | Habit | { id: string };
+  entity: Task | Appointment | Habit | { id: string } | Record<string, unknown>;
 }
 
 export type EffectHandler = (m: MutatedEntity) => void | Promise<void>;

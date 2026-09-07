@@ -10,7 +10,15 @@ import { useTranslation } from "@/lib/i18n/I18nProvider";
  * share the "settings" prefix), so each settings subpage renders its own small header
  * with a back link and its specific title.
  */
-export function SubpageHeader({ title, backHref }: { title: string; backHref: string }) {
+export function SubpageHeader({
+  title,
+  backHref,
+  action,
+}: {
+  title: string;
+  backHref: string;
+  action?: React.ReactNode;
+}) {
   const { t } = useTranslation();
 
   return (
@@ -22,7 +30,8 @@ export function SubpageHeader({ title, backHref }: { title: string; backHref: st
           variant="ghost"
         />
       </Link>
-      <h2 className="text-lg font-bold text-text-primary">{title}</h2>
+      <h2 className="min-w-0 flex-1 truncate text-lg font-bold text-text-primary">{title}</h2>
+      {action && <div className="shrink-0 pe-2">{action}</div>}
     </div>
   );
 }

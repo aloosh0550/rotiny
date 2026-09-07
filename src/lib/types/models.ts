@@ -99,6 +99,59 @@ export interface Habit {
   sync: SyncMeta;
 }
 
+/* ------------------------------------------------------------------ Phase 7 -- */
+
+export type LifeAreaKind =
+  | "worship"
+  | "exercise"
+  | "habits"
+  | "learning"
+  | "work"
+  | "health"
+  | "money"
+  | "family"
+  | "custom";
+
+export interface LifeArea {
+  id: ID;
+  key: string; // stable slug, unique per user
+  name: string;
+  icon: string; // lucide icon name
+  color: string; // extended-palette key
+  order: number;
+  enabled: boolean;
+  kind: LifeAreaKind;
+  sync: SyncMeta;
+}
+
+export type GoalHorizon = "long" | "month" | "week";
+export type GoalStatus = "active" | "done" | "paused" | "dropped";
+
+export interface Goal {
+  id: ID;
+  lifeAreaId?: ID | null;
+  parentGoalId?: ID | null;
+  title: string;
+  description?: string | null;
+  horizon: GoalHorizon;
+  targetValue?: number | null;
+  targetUnit?: string | null;
+  deadline?: string | null; // YYYY-MM-DD
+  status: GoalStatus;
+  sync: SyncMeta;
+}
+
+export interface GoalMilestone {
+  id: ID;
+  goalId: ID;
+  title: string;
+  targetValue?: number | null;
+  currentValue: number;
+  done: boolean;
+  order: number;
+  sync: SyncMeta;
+}
+
 export type MeasurementRefType = "habit" | "tracker" | "goal" | "custom";
 
 /** A per-day numeric value for anything measurable (current vs. its target). */

@@ -45,6 +45,8 @@ const SCREENS = [
   ["taskform", "/tasks/?add=1"],
   ["habits", "/habits/"],
   ["habitadd", "/habits/?add=1"],
+  ["areas", "/areas/"],
+  ["goals", "/goals/"],
   ["appointments", "/appointments/"],
   ["adhkar", "/adhkar/"],
   ["plan", "/plan/"],

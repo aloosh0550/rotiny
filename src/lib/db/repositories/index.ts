@@ -10,3 +10,9 @@ export { settingsRepository, createDefaultSettings } from "./settingsRepository"
 export { syncQueueRepository } from "./syncQueueRepository";
 export { dailyPlansRepository, dailyEnergyRepository } from "./dailyRepositories";
 export { measurementsRepository } from "./measurementsRepository";
+export {
+  lifeAreasRepository,
+  goalsRepository,
+  goalMilestonesRepository,
+  DEFAULT_LIFE_AREAS,
+} from "./areasGoalsRepositories";

@@ -11,7 +11,10 @@ export type EntityType =
   | "dhikr"
   | "dailyPlan"
   | "dailyEnergy"
-  | "measurement";
+  | "measurement"
+  | "lifeArea"
+  | "goal"
+  | "goalMilestone";
 
 export type EnergyLevel = "high" | "good" | "medium" | "low";
 

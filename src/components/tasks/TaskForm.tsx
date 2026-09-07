@@ -14,6 +14,7 @@ import { RecurrenceEditor } from "@/components/shared/RecurrenceEditor";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
 import { useLiveQuery } from "dexie-react-hooks";
 import { taskCategoriesRepository, tasksRepository } from "@/lib/db/repositories";
+import { useLifeAreas, useGoals } from "@/lib/hooks/useAreasGoals";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { onEntityMutated } from "@/lib/services/effects/appEffects";
 import { generateId } from "@/lib/utils/id";
@@ -84,11 +85,11 @@ export function TaskForm({ task, onSaved, onCancel }: TaskFormProps) {
   const [contextTags, setContextTags] = useState<string[]>(task?.context ?? []);
   const [contextDraft, setContextDraft] = useState("");
   const [saving, setSaving] = useState(false);
-
-  // Life Area / Goal links are preserved on edit; their pickers appear once
-  // those features exist (Phases 6–7).
-  const lifeAreaId = task?.lifeAreaId ?? null;
-  const goalId = task?.goalId ?? null;
+  const [lifeAreaId, setLifeAreaId] = useState<string>(task?.lifeAreaId ?? "");
+  const [goalId, setGoalId] = useState<string>(task?.goalId ?? "");
+  const areas = useLifeAreas() ?? [];
+  const goals = useGoals() ?? [];
+  const areaGoals = goals.filter((g) => !g.sync.deletedAt && (!lifeAreaId || g.lifeAreaId === lifeAreaId));
 
   function addContextTag() {
     const v = contextDraft.trim();
@@ -128,8 +129,8 @@ export function TaskForm({ task, onSaved, onCancel }: TaskFormProps) {
         energyCost: energyCost || null,
         plannedFor: plannedFor || null,
         context: contextTags,
-        lifeAreaId,
-        goalId,
+        lifeAreaId: lifeAreaId || null,
+        goalId: goalId || null,
       };
 
       if (isEdit && task) {
@@ -194,6 +195,33 @@ export function TaskForm({ task, onSaved, onCancel }: TaskFormProps) {
           options={[
             { value: "", label: t("smartAdd.noCategory") },
             ...categories.map((c) => ({ value: c.id, label: c.name })),
+          ]}
+        />
+      )}
+
+      {areas.length > 0 && (
+        <Select
+          label={t("goals.fieldArea")}
+          value={lifeAreaId}
+          onChange={(e) => {
+            setLifeAreaId(e.target.value);
+            setGoalId("");
+          }}
+          options={[
+            { value: "", label: t("goals.noArea") },
+            ...areas.map((a) => ({ value: a.id, label: a.name })),
+          ]}
+        />
+      )}
+
+      {areaGoals.length > 0 && (
+        <Select
+          label={t("goals.pageTitle")}
+          value={goalId}
+          onChange={(e) => setGoalId(e.target.value)}
+          options={[
+            { value: "", label: t("goals.noArea") },
+            ...areaGoals.map((g) => ({ value: g.id, label: g.title })),
           ]}
         />
       )}

@@ -108,6 +108,43 @@ export const habitSchema = z.object({
   sync: syncMetaSchema,
 });
 
+export const lifeAreaSchema = z.object({
+  id: idSchema,
+  key: z.string(),
+  name: z.string(),
+  icon: z.string(),
+  color: z.string(),
+  order: z.number(),
+  enabled: z.boolean(),
+  kind: z.string(),
+  sync: syncMetaSchema,
+});
+
+export const goalSchema = z.object({
+  id: idSchema,
+  lifeAreaId: idSchema.nullable().optional(),
+  parentGoalId: idSchema.nullable().optional(),
+  title: z.string(),
+  description: z.string().nullable().optional(),
+  horizon: z.enum(["long", "month", "week"]),
+  targetValue: z.number().nullable().optional(),
+  targetUnit: z.string().nullable().optional(),
+  deadline: z.string().nullable().optional(),
+  status: z.enum(["active", "done", "paused", "dropped"]),
+  sync: syncMetaSchema,
+});
+
+export const goalMilestoneSchema = z.object({
+  id: idSchema,
+  goalId: idSchema,
+  title: z.string(),
+  targetValue: z.number().nullable().optional(),
+  currentValue: z.number(),
+  done: z.boolean(),
+  order: z.number(),
+  sync: syncMetaSchema,
+});
+
 export const measurementSchema = z.object({
   id: idSchema,
   refType: z.enum(["habit", "tracker", "goal", "custom"]),
@@ -209,7 +246,7 @@ export const userSettingsSchema = z.looseObject({
 
 export const syncQueueEntrySchema = z.object({
   id: idSchema,
-  entityType: z.enum(["appointment", "task", "habit", "dhikr", "settings", "taskCategory", "dailyPlan", "dailyEnergy", "measurement"]),
+  entityType: z.enum(["appointment", "task", "habit", "dhikr", "settings", "taskCategory", "dailyPlan", "dailyEnergy", "measurement", "lifeArea", "goal", "goalMilestone"]),
   entityId: idSchema,
   operation: z.enum(["create", "update", "delete"]),
   payload: z.unknown(),
@@ -233,6 +270,9 @@ export const backupDataSchema = z.object({
     dailyPlans: z.array(dailyPlanSchema).optional(),
     dailyEnergy: z.array(dailyEnergySchema).optional(),
     measurements: z.array(measurementSchema).optional(),
+    lifeAreas: z.array(lifeAreaSchema).optional(),
+    goals: z.array(goalSchema).optional(),
+    goalMilestones: z.array(goalMilestoneSchema).optional(),
     settings: z.array(userSettingsSchema),
     syncQueue: z.array(syncQueueEntrySchema),
   }),
@@ -255,6 +295,9 @@ export interface BackupData {
     dailyPlans?: import("./models").DailyPlan[];
     dailyEnergy?: import("./models").DailyEnergy[];
     measurements?: import("./models").Measurement[];
+    lifeAreas?: import("./models").LifeArea[];
+    goals?: import("./models").Goal[];
+    goalMilestones?: import("./models").GoalMilestone[];
     settings: import("./settings").UserSettings[];
     syncQueue: import("./settings").SyncQueueEntry[];
   };

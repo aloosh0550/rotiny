@@ -6,11 +6,13 @@ import {
   BookOpen,
   CalendarDays,
   CalendarRange,
+  Compass,
   Home,
   ListChecks,
   MoreHorizontal,
   Repeat2,
   Search,
+  Target,
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
@@ -28,6 +30,8 @@ export function Sidebar() {
     { href: ROUTES.plan, label: t("nav.today"), icon: CalendarRange, exact: false },
     { href: ROUTES.tasks, label: t("nav.tasks"), icon: ListChecks, exact: false },
     { href: ROUTES.habits, label: t("nav.habits"), icon: Repeat2, exact: false },
+    { href: ROUTES.areas, label: t("nav.areas"), icon: Compass, exact: false },
+    { href: ROUTES.goals, label: t("nav.goals"), icon: Target, exact: false },
     { href: ROUTES.adhkar, label: t("nav.adhkar"), icon: BookOpen, exact: false },
     { href: ROUTES.appointments, label: t("nav.appointments"), icon: CalendarDays, exact: false },
     { href: ROUTES.search, label: t("nav.search"), icon: Search, exact: false },
