@@ -14,7 +14,9 @@ export type EntityType =
   | "measurement"
   | "lifeArea"
   | "goal"
-  | "goalMilestone";
+  | "goalMilestone"
+  | "review"
+  | "achievement";
 
 export type EnergyLevel = "high" | "good" | "medium" | "low";
 

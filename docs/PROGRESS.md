@@ -12,7 +12,7 @@ Branch `redesign/routini-v2`. Plan: `IMPLEMENTATION_PLAN.md` (v3, cloud-first).
 | **5 · Tasks + Appointments** | ✅ done | `tasks` += `life_area_id, goal_id, energy_cost, context(jsonb), planned_for` (migration `20260908000000`, additive, nullable). TaskForm pickers: effort chips · plan-for-day · context tags. Planner ranking uses `energy_cost`. `CalendarProviderService` abstraction (device impl only, not advertised). Integration test: new fields round-trip. |
 | **6 · Habits + Worship + Exercise + Water + Skills** | ✅ done | `habits` += `life_area_id, goal_id, tracker_kind`; new `measurements` cloud table (RLS, realtime, synced) + Dexie v4. Tracker presets (water/exercise/reading/skill) on the habits `+`. `HabitCard` count/duration targets show a real `<ProgressMeter>` (measured/target) with −/+ steppers that also keep the streak marker in sync. Integration test: measurement increments + Arabic unit round-trip. |
 | **7 · Goals + Life Areas + Overview** | ✅ done | `life_areas` + `goals` + `goal_milestones` cloud tables (RLS, realtime, synced) + Dexie v5. `/areas` = Life Overview grid (counts + done-goals meter, reorder, CRUD). `/goals` + `/goals/detail` with milestones + **`computeGoalProgress`** (milestones → measurements → task completion, 6 tests). Area+Goal pickers wired into TaskForm/HabitForm. Nav: الأذكار→المجالات. 3 default areas seeded idempotently by key. Integration: area+goal+milestone round-trip. |
-| 8 · Reviews + Analytics + Achievements | ⬜ | |
+| **8 · Reviews + Analytics + Achievements** | ✅ done | `reviews` + `achievements` cloud tables (RLS, realtime, synced) + Dexie v6. `src/lib/analytics/periods.ts` + **`computeReview`** (deterministic day/week/month metrics — tasks done/due, habit expected-vs-done via recurrence, adhkar days, measurements, per-area completion %, strongest/weakest area, delta vs previous period; 8 tests). `/reviews` (Daily/Weekly/Monthly tabs, no-pressure copy, suggestion). `useReview` computes + persists one review per period. `achievements/catalog.ts` + `refreshAchievements` (streak_7/30, exercise_20, reading_week, first_goal, great_week — recomputed from real data, sticky unlock). `/achievements` grid (locked/unlocked + progress). Wired into `/more`. Integration test: reviews + achievements round-trip. |
 | 9 · Notifications + interactive actions | ⬜ | |
 | 10 · Widgets / PWA + Push | ⬜ | |
 | 11 · AI architecture prep (no external AI) | ⬜ | |
@@ -24,20 +24,22 @@ Branch `redesign/routini-v2`. Plan: `IMPLEMENTATION_PLAN.md` (v3, cloud-first).
 
 ## Verification status (current)
 
-- `tsc` clean · `lint` clean · `vitest` **66 pass / 9 integration skipped in CI**
+- `tsc` clean · `lint` clean · `vitest` **74 pass / 10 integration skipped in CI**
 - `next build` (cloud + `build:local`) clean · `cap sync android` clean
-- Playwright QA (`build:local`): **30/30** screens, 360/393, RTL + dark, no overflow
-- **Local Supabase integration** (`RUN_SUPABASE_INTEGRATION=1 npm run test:integration`): 9/9
+- Playwright QA (`build:local`): **32/32** screens, 360/393, RTL + dark, no overflow
+- **Local Supabase integration** (`RUN_SUPABASE_INTEGRATION=1 npm run test:integration`): 10/10
   1. local create → Supabase + RLS hides it from another user
   2. another device's change → local replica via realtime
   3. stale offline edit → filed as a conflict, cloud wins the replica
   4. daily plan + daily energy → round-trip to `daily_plans` / `daily_energy`
   4b. Phase-5 task fields · 4c. measurements + Arabic unit · 4d. life areas + goals + milestones → round-trip
+  4e. reviews + achievements → round-trip to `reviews` / `achievements`
   5. settings change → `profiles.settings`
   6. first sign-in → uploads pre-existing local rows, id-preserving, non-destructive
 - **Hosted project** `qyrxtacuxojpdpujzjah`: migrations `20260906120000`, `20260906130000`,
   `20260907000000_phase4_daily` **applied** (owner-confirmed). RLS on, realtime reachable.
-  `20260908000000_phase5`, `20260909000000_phase6_measurements` **applied** (owner-confirmed). **Pending: apply `20260910000000_phase7_areas_goals.sql`** (additive, verified on the local stack).
+  `20260908000000_phase5`, `20260909000000_phase6_measurements`, `20260910000000_phase7_areas_goals`
+  **applied** (owner-confirmed). **Pending: apply `20260911000000_phase8_reviews.sql`** (additive, verified on the local stack).
 
 ## Not yet verified (needs a human)
 

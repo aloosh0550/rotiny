@@ -47,6 +47,8 @@ const SCREENS = [
   ["habitadd", "/habits/?add=1"],
   ["areas", "/areas/"],
   ["goals", "/goals/"],
+  ["reviews", "/reviews/"],
+  ["achievements", "/achievements/"],
   ["appointments", "/appointments/"],
   ["adhkar", "/adhkar/"],
   ["plan", "/plan/"],

@@ -251,6 +251,35 @@ d("SyncEngine ↔ Supabase", () => {
     expect(e.data!.level).toBe("good");
   }, 20_000);
 
+  it("reviews + achievements round-trip to the cloud", async () => {
+    const { reviewsRepository, achievementsRepository } = await import("@/lib/db/repositories");
+    await reviewsRepository.upsertForPeriod("week", "2026-W20", {
+      tasksDone: 4, tasksDue: 6, habitsDone: 5, habitsDue: 7, completionPct: 69,
+    });
+    await achievementsRepository.setProgress("streak_7", 7, 7);
+    await syncEngine.flush();
+
+    const r = await admin
+      .from("reviews")
+      .select("metrics, period, period_key")
+      .eq("user_id", userA.id)
+      .eq("period", "week")
+      .eq("period_key", "2026-W20")
+      .single();
+    expect(r.error).toBeNull();
+    expect((r.data!.metrics as { completionPct: number }).completionPct).toBe(69);
+
+    const a = await admin
+      .from("achievements")
+      .select("key, unlocked_at, progress")
+      .eq("user_id", userA.id)
+      .eq("key", "streak_7")
+      .single();
+    expect(a.error).toBeNull();
+    expect(a.data!.unlocked_at).not.toBeNull();
+    expect((a.data!.progress as { current: number }).current).toBe(7);
+  }, 20_000);
+
   it("settings changes sync to profiles.settings", async () => {
     const { settingsRepository } = await import("@/lib/db/repositories");
     await settingsRepository.update({ theme: "light", onboardingCompleted: true });

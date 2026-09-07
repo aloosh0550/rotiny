@@ -1,10 +1,12 @@
 "use client";
 
 import {
+  Award,
   BarChart3,
   BookOpen,
   CalendarDays,
   CalendarRange,
+  ClipboardList,
   Settings as SettingsIcon,
   Target,
   TrendingUp,
@@ -22,6 +24,8 @@ export default function MorePage() {
     { href: ROUTES.adhkar, icon: <BookOpen className="size-5" />, label: t("nav.adhkar") },
     { href: ROUTES.appointments, icon: <CalendarDays className="size-5" />, label: t("nav.appointments") },
     { href: ROUTES.plan, icon: <CalendarRange className="size-5" />, label: t("plan.pageTitle") },
+    { href: ROUTES.reviews, icon: <ClipboardList className="size-5" />, label: t("reviews.pageTitle") },
+    { href: ROUTES.achievements, icon: <Award className="size-5" />, label: t("achievements.pageTitle") },
     { href: ROUTES.summary, icon: <TrendingUp className="size-5" />, label: t("summary.pageTitle") },
     { href: ROUTES.statistics, icon: <BarChart3 className="size-5" />, label: t("more.statistics") },
     { href: ROUTES.settings, icon: <SettingsIcon className="size-5" />, label: t("more.settings") },

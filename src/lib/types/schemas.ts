@@ -223,6 +223,23 @@ export const dailyEnergySchema = z.object({
   sync: syncMetaSchema,
 });
 
+export const reviewSchema = z.object({
+  id: idSchema,
+  period: z.enum(["day", "week", "month"]),
+  periodKey: z.string(),
+  metrics: z.record(z.string(), z.unknown()),
+  aiNote: z.string().nullable().optional(),
+  sync: syncMetaSchema,
+});
+
+export const achievementSchema = z.object({
+  id: idSchema,
+  key: z.string(),
+  unlockedAt: z.string().nullable().optional(),
+  progress: z.object({ current: z.number(), target: z.number() }),
+  sync: syncMetaSchema,
+});
+
 // Settings shapes evolve version-to-version; keep the backup schema lenient so an
 // older/newer export still imports. `settingsRepository.migrateSettingsShape` fills gaps.
 const notificationPreferencesSchema = z.looseObject({ enabled: z.boolean() });
@@ -246,7 +263,7 @@ export const userSettingsSchema = z.looseObject({
 
 export const syncQueueEntrySchema = z.object({
   id: idSchema,
-  entityType: z.enum(["appointment", "task", "habit", "dhikr", "settings", "taskCategory", "dailyPlan", "dailyEnergy", "measurement", "lifeArea", "goal", "goalMilestone"]),
+  entityType: z.enum(["appointment", "task", "habit", "dhikr", "settings", "taskCategory", "dailyPlan", "dailyEnergy", "measurement", "lifeArea", "goal", "goalMilestone", "review", "achievement"]),
   entityId: idSchema,
   operation: z.enum(["create", "update", "delete"]),
   payload: z.unknown(),
@@ -273,6 +290,8 @@ export const backupDataSchema = z.object({
     lifeAreas: z.array(lifeAreaSchema).optional(),
     goals: z.array(goalSchema).optional(),
     goalMilestones: z.array(goalMilestoneSchema).optional(),
+    reviews: z.array(reviewSchema).optional(),
+    achievements: z.array(achievementSchema).optional(),
     settings: z.array(userSettingsSchema),
     syncQueue: z.array(syncQueueEntrySchema),
   }),
@@ -298,6 +317,8 @@ export interface BackupData {
     lifeAreas?: import("./models").LifeArea[];
     goals?: import("./models").Goal[];
     goalMilestones?: import("./models").GoalMilestone[];
+    reviews?: import("./models").Review[];
+    achievements?: import("./models").Achievement[];
     settings: import("./settings").UserSettings[];
     syncQueue: import("./settings").SyncQueueEntry[];
   };

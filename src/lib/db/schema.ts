@@ -14,6 +14,8 @@ import type {
   LifeArea,
   Goal,
   GoalMilestone,
+  Review,
+  Achievement,
   UserSettings,
   SyncQueueEntry,
 } from "@/lib/types";
@@ -42,6 +44,8 @@ export class RoutiniDB extends Dexie {
   lifeAreas!: Table<LifeArea, string>;
   goals!: Table<Goal, string>;
   goalMilestones!: Table<GoalMilestone, string>;
+  reviews!: Table<Review, string>;
+  achievements!: Table<Achievement, string>;
   settings!: Table<UserSettings, string>;
   syncQueue!: Table<SyncQueueEntry, string>;
 
@@ -116,6 +120,12 @@ export class RoutiniDB extends Dexie {
       lifeAreas: "id, key, order, sync.deletedAt",
       goals: "id, lifeAreaId, horizon, parentGoalId, sync.deletedAt",
       goalMilestones: "id, goalId, order, sync.deletedAt",
+    });
+
+    // v6 — additive: Reviews + Achievements (Phase 8). New stores only.
+    this.version(6).stores({
+      reviews: "id, [period+periodKey], sync.deletedAt",
+      achievements: "id, key, sync.deletedAt",
     });
   }
 }

@@ -248,3 +248,49 @@ export interface DailyEnergy {
   level: EnergyLevel;
   sync: SyncMeta;
 }
+
+/* ------------------------------------------------------------------ Phase 8 -- */
+
+export type ReviewPeriod = "day" | "week" | "month";
+
+/** The deterministic numbers behind a review — every value traceable to raw rows. */
+export interface ReviewMetrics {
+  tasksDone: number;
+  tasksDue: number;
+  habitsDone: number;
+  habitsDue: number;
+  adhkarDays?: number;
+  measurementsLogged?: number;
+  completionPct: number; // 0..100
+  /** vs the previous period of the same length, in percentage points. */
+  deltaPct?: number;
+  bestStreak?: number;
+  /** area key → completion pct for that area's items in the period. */
+  areas?: Record<string, number>;
+  strongestArea?: string | null;
+  weakestArea?: string | null;
+}
+
+export interface Review {
+  /** deterministic: `<userId>:<period>:<periodKey>` */
+  id: ID;
+  period: ReviewPeriod;
+  periodKey: string; // "2026-09-11" | "2026-W37" | "2026-09"
+  metrics: ReviewMetrics;
+  aiNote?: string | null;
+  sync: SyncMeta;
+}
+
+export interface AchievementProgress {
+  current: number;
+  target: number;
+}
+
+export interface Achievement {
+  /** deterministic: `<userId>:<key>` */
+  id: ID;
+  key: string;
+  unlockedAt?: string | null;
+  progress: AchievementProgress;
+  sync: SyncMeta;
+}

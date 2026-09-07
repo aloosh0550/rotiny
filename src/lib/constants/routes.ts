@@ -17,6 +17,8 @@ export const ROUTES = {
   area: (id: string) => `/areas/detail?id=${encodeURIComponent(id)}`,
   goals: "/goals",
   goal: (id: string) => `/goals/detail?id=${encodeURIComponent(id)}`,
+  reviews: "/reviews",
+  achievements: "/achievements",
   statistics: "/more/statistics",
   summary: "/more/summary",
   settings: "/more/settings",
