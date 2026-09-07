@@ -9,7 +9,7 @@ Branch `redesign/routini-v2`. Plan: `IMPLEMENTATION_PLAN.md` (v3, cloud-first).
 | **2 · DataStore + SyncEngine + cache** | ✅ done + verified | `CloudStore` (Supabase CRUD w/ RLS, pull cursor, upsert push, tombstone delete, realtime per-user, `profiles.settings` sync). `SyncEngine` (initial pull, realtime reconcile, outbox flush, server-version tracking, **cloud-wins conflict** + conflict inbox with re-apply/dismiss, one-time non-destructive local→cloud upload, sign-out wipe). Repos enqueue every mutation (env-gated). `useSyncState` + status UI on `/more/settings/sync`. **5 integration tests vs a real local Supabase, run 3× stable.** Hosted project has all 9 tables + RLS + realtime (probed via anon key). |
 | **3 · Core UX + Navigation** | ✅ done | Nav: مواعيدي→اليوم (plan) as slot 2, Appointments→More. Home recomposed to the one-answer layout (الآن hero → compact progress → المتبقي → layers). `<ProgressMeter>` primitive. No-pressure pass + calm **متأخر** group on Tasks (overdue never hidden). Onboarding demo data now opt-in. |
 | **4 · Home + Today + Daily Plan + Energy** | ✅ done | `daily_plans` + `daily_energy` (cloud tables, RLS, realtime, synced) + Dexie v3. `/plan` rewritten: persisted plan (auto-gen once/day), per-bucket reorder, complete-from-plan, "لماذا الآن؟", regenerate, past-days history. Morning `EnergyCheckIn` on Home feeds the planner. `LateMode` ("أنا متأخر") = deterministic triage + move-to-tomorrow (never auto-deletes). Integration test: plan + energy round-trip to cloud. |
-| 5 · Tasks + Appointments | ⬜ | |
+| **5 · Tasks + Appointments** | ✅ done | `tasks` += `life_area_id, goal_id, energy_cost, context(jsonb), planned_for` (migration `20260908000000`, additive, nullable). TaskForm pickers: effort chips · plan-for-day · context tags. Planner ranking uses `energy_cost`. `CalendarProviderService` abstraction (device impl only, not advertised). Integration test: new fields round-trip. |
 | 6 · Habits + Worship + Exercise + Water + Skills | ⬜ | |
 | 7 · Goals + Life Areas + Overview | ⬜ | |
 | 8 · Reviews + Analytics + Achievements | ⬜ | |
@@ -27,16 +27,17 @@ Branch `redesign/routini-v2`. Plan: `IMPLEMENTATION_PLAN.md` (v3, cloud-first).
 - `tsc` clean · `lint` clean · `vitest` **59 pass / 5 integration skipped in CI**
 - `next build` (cloud + `build:local`) clean · `cap sync android` clean
 - Playwright QA (`build:local`): **26/26** screens, 360/393, RTL + dark, no overflow
-- **Local Supabase integration** (`RUN_SUPABASE_INTEGRATION=1 npm run test:integration`): 6/6
+- **Local Supabase integration** (`RUN_SUPABASE_INTEGRATION=1 npm run test:integration`): 7/7
   1. local create → Supabase + RLS hides it from another user
   2. another device's change → local replica via realtime
   3. stale offline edit → filed as a conflict, cloud wins the replica
   4. daily plan + daily energy → round-trip to `daily_plans` / `daily_energy`
+  4b. Phase-5 task fields (energy_cost / context / planned_for / life_area_id) → round-trip
   5. settings change → `profiles.settings`
   6. first sign-in → uploads pre-existing local rows, id-preserving, non-destructive
-- **Hosted project** `qyrxtacuxojpdpujzjah`: migrations `20260906120000` + `20260906130000` applied,
-  9/9 tables, RLS on, realtime reachable. **Pending: apply `20260907000000_phase4_daily.sql`**
-  (adds `daily_plans` + `daily_energy` — additive, verified on the local stack).
+- **Hosted project** `qyrxtacuxojpdpujzjah`: migrations `20260906120000`, `20260906130000`,
+  `20260907000000_phase4_daily` **applied** (owner-confirmed). RLS on, realtime reachable.
+  **Pending: apply `20260908000000_phase5_task_fields.sql`** (additive, verified on the local stack).
 
 ## Not yet verified (needs a human)
 
