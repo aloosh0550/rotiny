@@ -23,7 +23,16 @@ import type { SyncQueueEntry } from "@/lib/types";
 const CURSOR_KEY = (t: string) => `routini:sync:cursor:${t}`;
 const CONFLICTS_KEY = "routini:sync:conflicts";
 const PULLED_ONCE_KEY = "routini:sync:pulledOnce";
+const ACCOUNT_KEY = "routini:sync:account";
 const SV_KEY = (t: string, id: string) => `routini:sync:sv:${t}:${id}`;
+
+/** localStorage key prefixes cleared on sign-out / account switch. Device prefs
+ *  (`routini:theme`, `routini:locale`) are deliberately kept. */
+const WIPE_PREFIXES = ["routini:sync:", "routini:reschedule:"];
+
+/** Local Dexie tables holding user data that are NOT in SYNCED_TABLES yet and so
+ *  must be cleared explicitly on sign-out (their cloud migration isn't applied). */
+const EXTRA_LOCAL_TABLES = ["aiActions"] as const;
 
 /** The server `version` we last saw for a row — the base an offline edit builds on. */
 function getServerVersion(t: string, id: string): number | null {
@@ -131,15 +140,35 @@ class SyncEngineImpl {
     }
   }
 
+  private lastAccount(): string | null {
+    try {
+      return localStorage.getItem(ACCOUNT_KEY);
+    } catch {
+      return null;
+    }
+  }
+
   async start(userId: string): Promise<void> {
     if (this.running && this.userId === userId) return;
     await this.stop();
     if (!(await cloudStore.isReady())) return;
+
+    // Account guard: if this device last synced a DIFFERENT account (or a
+    // sign-out wipe was interrupted), wipe the local replica BEFORE touching the
+    // cloud — otherwise `uploadLocalOnce` could push the previous user's rows to
+    // this account, and `pullAll` would leave stale rows behind.
+    const prev = this.lastAccount();
+    if (prev && prev !== userId) {
+      await this.wipeLocal();
+    }
+
     this.userId = userId;
     this.running = true;
 
-    // First sign-in on this device: push any pre-cloud local rows up before the
-    // pull, so nothing is lost. Id-preserving + only-if-absent → idempotent.
+    // First sign-in on this device (for THIS account): push any pre-cloud local
+    // rows up before the pull, so nothing is lost. Id-preserving + only-if-absent
+    // → idempotent. Only runs when the local data belongs to this account
+    // (guaranteed by the wipe above when the account differs).
     if (!this.hasPulledOnce()) {
       await this.uploadLocalOnce(userId).catch(() => {});
     }
@@ -156,6 +185,7 @@ class SyncEngineImpl {
     }
     try {
       localStorage.setItem(PULLED_ONCE_KEY, "1");
+      localStorage.setItem(ACCOUNT_KEY, userId);
     } catch {
       /* ignore */
     }
@@ -203,12 +233,15 @@ class SyncEngineImpl {
   async wipeLocal(): Promise<void> {
     await this.stop();
     await Promise.all(SYNCED_TABLES.map((t) => db.table(DEXIE_TABLE[t]).clear()));
+    await Promise.all(
+      EXTRA_LOCAL_TABLES.map((t) => db.table(t).clear().catch(() => {})),
+    );
     await syncQueueRepository.clear();
     await db.settings.delete("singleton").catch(() => {});
     try {
       for (let i = localStorage.length - 1; i >= 0; i--) {
         const k = localStorage.key(i);
-        if (k && k.startsWith("routini:sync:")) localStorage.removeItem(k);
+        if (k && WIPE_PREFIXES.some((p) => k.startsWith(p))) localStorage.removeItem(k);
       }
     } catch {
       /* ignore */

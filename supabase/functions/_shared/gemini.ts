@@ -20,10 +20,30 @@ export class GeminiError extends Error {
   status: number;
   /** a short machine code the client can map: rate_limited | model | safety | server */
   code: string;
-  constructor(status: number, code: string, message: string) {
+  /** detail for server-side logs ONLY — never returned to the client */
+  detail?: string;
+  constructor(status: number, code: string, message: string, detail?: string) {
     super(message);
     this.status = status;
     this.code = code;
+    this.detail = detail;
+  }
+}
+
+/**
+ * The safe, generic message returned to the client for a given code. Provider
+ * internals, upstream error bodies and stack traces never cross the wire.
+ */
+export function clientMessageFor(code: string): string {
+  switch (code) {
+    case "rate_limited":
+      return "AI daily limit reached";
+    case "model":
+      return "AI model unavailable";
+    case "safety":
+      return "AI declined to answer";
+    default:
+      return "AI temporarily unavailable";
   }
 }
 
@@ -60,32 +80,40 @@ export async function geminiGenerate(args: GenArgs): Promise<string> {
     });
   } catch (e) {
     clearTimeout(timer);
-    throw new GeminiError(504, "server", e?.name === "AbortError" ? "gemini timeout" : "gemini unreachable");
+    const timeout = e?.name === "AbortError";
+    throw new GeminiError(
+      504,
+      "server",
+      timeout ? "timeout" : "upstream unreachable",
+      timeout ? "gemini timeout" : "gemini fetch failed",
+    );
   }
   clearTimeout(timer);
 
-  if (res.status === 429) throw new GeminiError(429, "rate_limited", "gemini rate limited");
-  if (res.status === 404) throw new GeminiError(502, "model", `gemini model "${geminiModel()}" not found`);
+  if (res.status === 429) throw new GeminiError(429, "rate_limited", "rate limited");
+  if (res.status === 404) {
+    throw new GeminiError(502, "model", "model not found", `model "${geminiModel()}" not found`);
+  }
   if (!res.ok) {
     const body = (await res.text().catch(() => "")).slice(0, 300);
-    throw new GeminiError(502, "server", `gemini ${res.status}: ${body}`);
+    throw new GeminiError(502, "server", "upstream error", `gemini ${res.status}: ${body}`);
   }
 
   const data = await res.json().catch(() => null);
   const blockReason = data?.promptFeedback?.blockReason;
-  if (blockReason) throw new GeminiError(502, "safety", `blocked: ${blockReason}`);
+  if (blockReason) throw new GeminiError(502, "safety", "blocked", `blockReason ${blockReason}`);
 
   const cand = data?.candidates?.[0];
   const finish = cand?.finishReason;
   if (finish && finish !== "STOP" && finish !== "MAX_TOKENS") {
-    throw new GeminiError(502, "safety", `finishReason ${finish}`);
+    throw new GeminiError(502, "safety", "blocked", `finishReason ${finish}`);
   }
 
   const text = (cand?.content?.parts ?? [])
     .map((p: { text?: string }) => p.text ?? "")
     .join("")
     .trim();
-  if (!text) throw new GeminiError(502, "server", "empty gemini response");
+  if (!text) throw new GeminiError(502, "server", "empty response", "empty gemini response");
   return text;
 }
 

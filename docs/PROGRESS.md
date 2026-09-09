@@ -20,19 +20,21 @@ Branch `redesign/routini-v2`. Plan: `IMPLEMENTATION_PLAN.md` (v3, cloud-first).
 | **12 · Gemini eval + prompt tuning** | ✅ done (see `docs/PHASE_12.md`) | **Model fix**: `gemini-1.5-flash` was **retired** (real calls 404 → assistant never answered) → **`gemini-flash-latest`** stable alias, overridable via `GEMINI_MODEL` secret. Shared `supabase/functions/_shared/gemini.ts` — timeout, `{error,code}` mapping (rate_limited/model/safety/server), safety/`finishReason` handling, lenient JSON parse. `ai-chat` prepends **immutable server-side rules** (defence vs a tampered client); memory extraction = separate strict-JSON call at temp 0. `ai-plan` deployed (JSON mode + server-side id re-validation). Prompts tuned (no-invention, concrete "لماذا الآن", never-execute). Client: 429→`rate-limited` + calm copy; "what gets shared" panel states the free-tier training caveat. `scripts/test-ai-function.mjs` extended (both functions, secret-free, 10/10). **`ai-chat` + `ai-plan` deployed to Production** (PAT, no key printed, no new key, no DB change). Real Gemini round-trip = owner-verified (needs a signed-in session). +7 tests. |
 | **13 · AI Assistant deepening** | ✅ done (see `docs/PHASE_13.md`) | **Proposed actions**: `ai-chat` extracts `proposedActions[]` (one strict-JSON call, shared with memory). Items referenced by **opaque per-turn refs** (`t1,h2,p3`) — real ids never leave the device (`buildAIContext` returns `{context, refMap}`). `resolveProposedActions` maps refs→ids, drops unresolvable/forbidden/unknown, then every action goes through the **existing** `parseAiAction (Zod) → forbidden guard → policy(autonomy) → repositories → ai_actions log`. `useAssistant` exposes `proposedActions` + `confirmProposed`/`rejectProposed`. **`ProposedActionCard`** in `/assistant` (what / why / affected item / apply / dismiss; auto-applied shown per autonomy). **RescheduleSheet + ai-plan**: after the deterministic reschedule, `regenerateDailyPlan` AI-orders the rest (ids verified + local fallback, same loop counter). **AI action history**: `AiActionHistory` in Settings (proposed/applied/rejected/failed + reason + relative time; local only, no raw prompts; clear button). `/plan` regenerate reuses `regenerateDailyPlan`. Model: no change. **+24 tests** (resolve, injection via proposedActions, autonomy, e2e pipeline, context refs/no-id-leak, regenerateDailyPlan fallback). `ai-chat` redeployed. |
 | 14 · Watch + Health + Location + Voice | ⬜ | |
-| 15 · Security + Performance + Testing | ⬜ | |
+| **15 · Security + Production Hardening** | ✅ done (see `docs/PHASE_15.md`) | Full-stack review. **Fixed**: (S1) **security headers** — `vercel.json` (X-Frame-Options DENY, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, HSTS, CSP header w/ `frame-ancestors 'none'`) + a `<meta>` CSP on every page (`src/lib/security/csp.ts`) — `default-src 'self'`, `connect-src` locked to self+`*.supabase.co` (Gemini server-side only), `object-src 'none'`, no `unsafe-eval`; `script-src 'unsafe-inline'` documented (static export, no nonce possible). `npm run csp:check` (real browser, 19 routes, 0 violations). (S2) `SyncEngine.wipeLocal` now clears `aiActions` + `routini:reschedule:*` on sign-out. (S3) **account guard** — `SyncEngine.start` wipes the replica if a different account last synced (blocks cross-user upload on interrupted logout). (S4) Edge Functions return generic errors, log detail server-side only. (S5) migration `20260915000000_phase15_harden.sql` — `search_path` pinned on trigger/signup functions (local-verified, NOT applied). (S6) `npm audit fix` → js-yaml HIGH (dev-only) patched; capacitor/uuid chain = iOS CLI tooling, not shipped, left. **Confirmed solid**: 19/19 Production tables RLS + `auth.uid()` (0 broad policies), no secret in bundle/git, SW caches only same-origin static. **+20 security tests** + 3 integration (RLS write-boundary, account guard). CI gains a `hardening` job. |
 | 16 · Production readiness | ⬜ | |
 
 ## Verification status (current)
 
-- `tsc` clean · `lint` clean · `vitest` **147 pass / 11 integration skipped in CI**
+- `tsc` clean · `lint` clean · `vitest` **164 pass / 14 integration skipped in CI**
 - `next build` (cloud + `build:local`) clean · `cap sync android` clean
 - Playwright QA (`build:local`): **36/36** screens, 360/393, RTL + dark, no overflow
+- **CSP** (`npm run csp:check`): meta CSP + core directives present, **0 violations / 19 routes**, no `unsafe-eval`
 - **AI functions** (`node scripts/test-ai-function.mjs`, secret-free): ai-chat + ai-plan —
   OPTIONS 200 · GET 405 · POST-no-session 401 (key present) · no key in any body — 10/10
 - **PWA offline** (`npm run pwa:check`): SW installs + controls, app-shell cache = 19 entries,
   12/12 routes render offline, unknown route → `/offline/`
-- **Local Supabase integration** (`RUN_SUPABASE_INTEGRATION=1 npm run test:integration`): 11/11
+- **Local Supabase integration** (`RUN_SUPABASE_INTEGRATION=1 npm run test:integration`): 14/14
+  (incl. RLS: B can't insert with A's user_id / can't update/delete A's row; account guard wipes leftover rows)
   1. local create → Supabase + RLS hides it from another user
   2. another device's change → local replica via realtime
   3. stale offline edit → filed as a conflict, cloud wins the replica
@@ -48,11 +50,14 @@ Branch `redesign/routini-v2`. Plan: `IMPLEMENTATION_PLAN.md` (v3, cloud-first).
   `ai_conversations` + `ai_memory` verified live (tables, `owner all` RLS policies,
   `supabase_realtime` membership) via read-only checks.
   Edge Functions `ai-chat` + `ai-plan` **deployed** to Production (`GEMINI_API_KEY` shared
-  hosted secret; model `gemini-flash-latest`, overridable via `GEMINI_MODEL`; smoke test
-  10/10 secret-free). Real Gemini round-trip: owner-verified (needs a signed-in session).
-  **Pending (both additive, local-verified, NOT applied; client sync wiring held until applied):**
-  `20260913000000_phase10_devices.sql` (Phase 10 J4 — `devices` for push + presence),
-  `20260914000000_phase11_ai_actions.sql` (Phase 11 — `ai_actions` audit log).
+  hosted secret; model `gemini-flash-latest`, overridable via `GEMINI_MODEL`; generic error
+  bodies, detail logged server-side only; smoke test 10/10 secret-free). Real Gemini
+  round-trip: owner-verified (needs a signed-in session).
+  RLS re-audited read-only: **19/19 tables** RLS on + `auth.uid()` policy, zero broad policies.
+  **Pending (all additive, local-verified, NOT applied):**
+  `20260913000000_phase10_devices.sql` (Phase 10 J4 — `devices`),
+  `20260914000000_phase11_ai_actions.sql` (Phase 11 — `ai_actions`),
+  `20260915000000_phase15_harden.sql` (Phase 15 — `search_path` on trigger/signup functions).
 
 ## Not yet verified (needs a human)
 
