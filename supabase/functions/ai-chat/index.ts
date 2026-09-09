@@ -21,7 +21,7 @@
 // @ts-nocheck  — Deno runtime types are not part of the app's tsconfig.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
-import { GeminiError, geminiGenerate, geminiModel, makeBudget, parseJsonLoose } from "../_shared/gemini.ts";
+import { GeminiError, clientMessageFor, geminiGenerate, geminiModel, makeBudget, parseJsonLoose } from "../_shared/gemini.ts";
 
 // Immutable server-side rules — prepended to whatever system prompt the client
 // sends, so a tampered client can't remove the safety guarantees.
@@ -164,9 +164,12 @@ Deno.serve(async (req: Request) => {
       proposedActions: proposedActions?.length ? proposedActions : undefined,
     });
   } catch (e) {
+    // Log the detail server-side only; never return provider internals / stack traces.
     if (e instanceof GeminiError) {
-      return json({ error: e.message, code: e.code, model: geminiModel() }, e.status);
+      if (e.detail) console.error("[gemini]", e.code, e.detail);
+      return json({ error: clientMessageFor(e.code), code: e.code, model: geminiModel() }, e.status);
     }
-    return json({ error: String(e), code: "server" }, 502);
+    console.error("[fn] unexpected", e instanceof Error ? e.message : "non-error");
+    return json({ error: "AI temporarily unavailable", code: "server" }, 502);
   }
 });

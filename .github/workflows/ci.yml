@@ -52,3 +52,20 @@ jobs:
             exit 1
           fi
           echo "No real secrets in the client bundle."
+
+  hardening:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Build (local, no env)
+        run: npm run build:local
+      - name: CSP — no violations, core directives present
+        run: npm run csp:check
+      - name: PWA — offline coverage, no secrets cached
+        run: npm run pwa:check

@@ -353,4 +353,76 @@ d("SyncEngine ↔ Supabase", () => {
     // still present locally
     expect(await tasksRepository.getById(id)).toBeTruthy();
   }, 30_000);
+
+  /* ---------------------------------------------------------------- security */
+
+  it("RLS: user B cannot INSERT a row stamped with user A's id (with-check)", async () => {
+    const id = crypto.randomUUID();
+    const res = await bClient.from("tasks").insert({
+      id,
+      user_id: userA.id, // forged owner
+      title: "محاولة انتحال",
+      has_time: false,
+      priority: "normal",
+      status: "pending",
+      reminders: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      version: 1,
+    });
+    expect(res.error).toBeTruthy(); // RLS with-check rejects it
+    const onServer = await admin.from("tasks").select("id").eq("id", id);
+    expect(onServer.data).toHaveLength(0);
+  });
+
+  it("RLS: user B cannot UPDATE or DELETE user A's row", async () => {
+    // A creates a row
+    const id = crypto.randomUUID();
+    await tasksRepository.create({
+      id, title: "صفّ يخصّ أ", hasTime: false, priority: "normal", status: "pending", reminders: [],
+      sync: { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), deletedAt: null, syncStatus: "pending", remoteId: null, version: 1 },
+    });
+    await syncEngine.flush();
+
+    const upd = await bClient.from("tasks").update({ title: "اختراق" }).eq("id", id);
+    const del = await bClient.from("tasks").delete().eq("id", id);
+    // RLS: the rows just aren't visible to B, so 0 rows affected (no error, no change)
+    expect(upd.error).toBeNull();
+    expect(del.error).toBeNull();
+    const still = await admin.from("tasks").select("title").eq("id", id).single();
+    expect(still.data?.title).toBe("صفّ يخصّ أ");
+  }, 20_000);
+
+  it("account guard: signing in as B wipes A's leftover local rows before syncing", async () => {
+    const { db } = await import("@/lib/db/schema");
+    await syncEngine.stop();
+
+    // simulate an interrupted sign-out: A's data + account marker still local
+    const leftover = crypto.randomUUID();
+    await db.table("tasks").put({
+      id: leftover, title: "بقايا حساب أ", hasTime: false, priority: "normal", status: "pending", reminders: [],
+      sync: { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), deletedAt: null, syncStatus: "pending", remoteId: null, version: 1 },
+    });
+    localStorage.setItem("routini:sync:account", userA.id);
+    localStorage.setItem("routini:sync:pulledOnce", "1");
+
+    // B signs in on the same device
+    const bEmail = (await admin.auth.admin.getUserById(userB.id)).data.user!.email!;
+    const sb = (await getSupabase())!;
+    await sb.auth.signOut().catch(() => {});
+    await sb.auth.signInWithPassword({ email: bEmail, password: PW });
+    await syncEngine.start(userB.id);
+
+    // A's leftover row is gone locally and was NEVER uploaded to B's account
+    expect(await tasksRepository.getById(leftover)).toBeFalsy();
+    const inBCloud = await admin.from("tasks").select("id").eq("id", leftover);
+    expect(inBCloud.data).toHaveLength(0);
+    expect(localStorage.getItem("routini:sync:account")).toBe(userB.id);
+
+    // restore A for any later test / afterAll
+    await syncEngine.stop();
+    await sb.auth.signOut().catch(() => {});
+    const aEmail = (await admin.auth.admin.getUserById(userA.id)).data.user!.email!;
+    await sb.auth.signInWithPassword({ email: aEmail, password: PW });
+  }, 40_000);
 });

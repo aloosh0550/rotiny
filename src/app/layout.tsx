@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/theme/ThemeProvider";
 import { I18N_BOOTSTRAP_SCRIPT } from "@/lib/i18n/I18nProvider";
+import { CSP_META } from "@/lib/security/csp";
 
 const plexArabic = IBM_Plex_Sans_Arabic({
   subsets: ["arabic", "latin"],
@@ -43,6 +44,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ar" dir="rtl" className={plexArabic.variable} suppressHydrationWarning>
       <head>
+        <meta httpEquiv="Content-Security-Policy" content={CSP_META} />
+        <meta name="referrer" content="strict-origin-when-cross-origin" />
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: I18N_BOOTSTRAP_SCRIPT }} />
       </head>
