@@ -7,7 +7,15 @@ import { useAuth } from "@/lib/auth/AuthProvider";
 import { aiConversationsRepository, aiMemoryRepository } from "@/lib/db/repositories";
 import { getAIProvider } from "@/lib/ai/registry";
 import { buildAIContext } from "@/lib/ai/context";
+import { resolveProposedActions } from "@/lib/ai/actions";
+import {
+  processActions,
+  confirmAction,
+  rejectAction,
+  type ProcessedAction,
+} from "@/lib/ai/pipeline";
 import { AIUnavailableError } from "@/lib/ai/errors";
+import type { AIRefMap } from "@/lib/ai/types";
 import type { AiMessage } from "@/lib/types";
 
 export type AssistantStatus = "idle" | "thinking" | "unavailable";
@@ -21,7 +29,11 @@ export interface UseAssistant {
   lastError: AIUnavailableError["reason"] | null;
   /** memory lines saved on the most recent turn (for a small notice) */
   savedMemory: string[];
+  /** actions the assistant proposed on the most recent turn, after the pipeline */
+  proposedActions: ProcessedAction[];
   send: (text: string) => Promise<void>;
+  confirmProposed: (logId: string) => Promise<"applied" | "failed" | "gone">;
+  rejectProposed: (logId: string) => Promise<void>;
   reset: () => void;
 }
 
@@ -34,6 +46,7 @@ export function useAssistant(): UseAssistant {
   const [busy, setBusy] = useState(false);
   const [lastError, setLastError] = useState<AIUnavailableError["reason"] | null>(null);
   const [savedMemory, setSavedMemory] = useState<string[]>([]);
+  const [proposedActions, setProposedActions] = useState<ProcessedAction[]>([]);
   const convIdRef = useRef<string | null>(null);
 
   const ai = settings?.ai;
@@ -45,6 +58,7 @@ export function useAssistant(): UseAssistant {
     setMessages([]);
     setLastError(null);
     setSavedMemory([]);
+    setProposedActions([]);
     setBusy(false);
     convIdRef.current = null;
   }, []);
@@ -60,6 +74,7 @@ export function useAssistant(): UseAssistant {
       setMessages(history);
       setLastError(null);
       setSavedMemory([]);
+      setProposedActions([]);
 
       // persist the user's turn immediately (works even if AI then fails)
       try {
@@ -79,10 +94,15 @@ export function useAssistant(): UseAssistant {
 
       setBusy(true);
       try {
-        const context =
-          ai.shareContext
-            ? await buildAIContext({ includeMemory: ai.memoryEnabled }).catch(() => undefined)
-            : undefined;
+        let refMap: AIRefMap = {};
+        let context = undefined;
+        if (ai.shareContext) {
+          const built = await buildAIContext({ includeMemory: ai.memoryEnabled }).catch(() => null);
+          if (built) {
+            context = built.context;
+            refMap = built.refMap;
+          }
+        }
 
         const res = await provider.chat(
           {
@@ -116,6 +136,19 @@ export function useAssistant(): UseAssistant {
           }
           setSavedMemory(saved);
         }
+
+        // Proposed actions → resolve refs → the same Zod + policy + pipeline path.
+        // The model can only ever *propose*; the pipeline decides + applies.
+        if (res.proposedActions?.length) {
+          const resolved = resolveProposedActions(res.proposedActions, refMap);
+          if (resolved.length) {
+            const processed = await processActions(resolved, {
+              autonomy: ai.autonomy,
+              source: "assistant",
+            }).catch(() => [] as ProcessedAction[]);
+            setProposedActions(processed.filter((p) => p.outcome !== "rejected"));
+          }
+        }
         setBusy(false);
       } catch (e) {
         const reason = e instanceof AIUnavailableError ? e.reason : "server";
@@ -140,5 +173,29 @@ export function useAssistant(): UseAssistant {
     [ai, busy, messages, locale, session],
   );
 
-  return { messages, status, available, lastError, savedMemory, send, reset };
+  const confirmProposed = useCallback(async (logId: string) => {
+    const r = await confirmAction(logId);
+    setProposedActions((list) =>
+      list.map((p) => (p.logId === logId ? { ...p, outcome: r === "applied" ? "applied" : "failed" } : p)),
+    );
+    return r;
+  }, []);
+
+  const rejectProposed = useCallback(async (logId: string) => {
+    await rejectAction(logId);
+    setProposedActions((list) => list.filter((p) => p.logId !== logId));
+  }, []);
+
+  return {
+    messages,
+    status,
+    available,
+    lastError,
+    savedMemory,
+    proposedActions,
+    send,
+    confirmProposed,
+    rejectProposed,
+    reset,
+  };
 }

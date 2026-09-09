@@ -4,8 +4,12 @@
  * The ONLY place a Gemini API key ever lives. The client (`GeminiProvider`)
  * POSTs { system, context, messages, locale } here with the user's Supabase
  * JWT; this function verifies the user, calls Gemini, and returns
- *   { reply, memory? }   on success
- *   { error, code }      on failure  (code ∈ rate_limited|model|safety|server)
+ *   { reply, memory?, proposedActions? }   on success
+ *   { error, code }                        on failure  (code ∈ rate_limited|model|safety|server)
+ *
+ * `proposedActions` are extracted by a second strict-JSON call. They are NEVER
+ * applied here — the client resolves the item refs and re-validates every one
+ * through Zod + the autonomy policy + the action pipeline.
  *
  * Setup (owner does this — no key in the repo/client):
  *   supabase functions deploy ai-chat
@@ -66,13 +70,14 @@ Deno.serve(async (req: Request) => {
 
   const clientSystem = String(payload.system ?? "").slice(0, 4000);
   const system = `${SERVER_RULES}\n${clientSystem}`;
-  const wantMemory = payload.locale === "ar" || payload.locale === "en";
+  const extract = payload.locale === "ar" || payload.locale === "en";
+  const contextStr = payload.context ? String(payload.context).slice(0, 6000) : "";
   const history = Array.isArray(payload.messages) ? payload.messages.slice(-20) : [];
   if (history.length === 0) return json({ error: "no messages", code: "server" }, 400);
 
   const contents: unknown[] = [];
-  if (payload.context) {
-    contents.push({ role: "user", parts: [{ text: String(payload.context).slice(0, 6000) }] });
+  if (contextStr) {
+    contents.push({ role: "user", parts: [{ text: contextStr }] });
     contents.push({ role: "model", parts: [{ text: "تلقّيت السياق." }] });
   }
   for (const m of history) {
@@ -91,32 +96,73 @@ Deno.serve(async (req: Request) => {
       maxOutputTokens: 800,
     });
 
-    // Optional, best-effort memory extraction — a second cheap call constrained
-    // to strict JSON. Never blocks the reply; any failure just omits memory.
+    // One best-effort strict-JSON call for both memory + proposed actions.
+    // Never blocks the reply; any failure just omits the extras.
     let memory: { kind: string; text: string }[] | undefined;
-    if (wantMemory) {
+    let proposedActions: unknown[] | undefined;
+    if (extract) {
       try {
         const raw = await geminiGenerate({
           apiKey,
           system:
-            "استخرج 0 إلى 2 تفضيلات ثابتة وواضحة عن المستخدم من آخر رسالة له. " +
-            'أعِد JSON فقط: {"memory":[{"kind":"preference|pattern|fact","text":"..."}]}. ' +
-            "إن لم يكن هناك شيء واضح أعِد {\"memory\":[]}. لا تخمّن.",
-          contents: [{ role: "user", parts: [{ text: history[history.length - 1]?.content ?? "" }] }],
+            "من رسالة المستخدم الأخيرة وردّ المساعد والسياق أعلاه، استخرج ما يلي كـ JSON فقط:\n" +
+            '{"memory":[{"kind":"preference|pattern|fact","text":"..."}],' +
+            '"actions":[{"kind":"...","ref":"...","direction":-1|1,"bucket":"morning|afternoon|evening","reason":"..."}]}\n' +
+            "memory: 0 إلى 2 تفضيلات ثابتة واضحة عن المستخدم فقط — لا تخمين.\n" +
+            "actions: 0 إلى 3 تغييرات ملموسة يطلبها المستخدم صراحةً على عناصر اليوم.\n" +
+            "الأنواع المسموحة فقط: deferTaskToTomorrow, lowerTaskPriority, markPlanItemDone, moveItemToBucket, reorderPlanItem.\n" +
+            "أشِر إلى العنصر بمرجعه بين [] في السياق (مثل t1 أو p2 أو h1). ممنوع أي حذف أو تعديل موعد أو أي نوع آخر.\n" +
+            "reason: سبب مختصر بالعربية. إن لم يطلب المستخدم تغييرًا واضحًا أعِد actions فارغة.",
+          contents: [
+            {
+              role: "user",
+              parts: [
+                {
+                  text:
+                    `السياق:\n${contextStr || "(بدون)"}\n\n` +
+                    `رسالة المستخدم: ${history[history.length - 1]?.content ?? ""}\n\n` +
+                    `ردّ المساعد: ${reply}`,
+                },
+              ],
+            },
+          ],
           json: true,
           temperature: 0,
-          maxOutputTokens: 200,
+          maxOutputTokens: 400,
         });
-        const parsed = parseJsonLoose<{ memory?: { kind: string; text: string }[] }>(raw);
+        const parsed = parseJsonLoose<{
+          memory?: { kind: string; text: string }[];
+          actions?: unknown[];
+        }>(raw);
         memory = (parsed?.memory ?? [])
           .filter((m) => m && typeof m.text === "string" && ["preference", "pattern", "fact"].includes(m.kind))
           .slice(0, 2);
+        const ALLOWED = new Set([
+          "deferTaskToTomorrow",
+          "lowerTaskPriority",
+          "markPlanItemDone",
+          "moveItemToBucket",
+          "reorderPlanItem",
+        ]);
+        proposedActions = (Array.isArray(parsed?.actions) ? parsed!.actions : [])
+          .filter(
+            (a: unknown) =>
+              a &&
+              typeof a === "object" &&
+              ALLOWED.has(String((a as { kind?: unknown }).kind)) &&
+              typeof (a as { reason?: unknown }).reason === "string",
+          )
+          .slice(0, 3);
       } catch {
-        /* memory is optional */
+        /* extras are optional */
       }
     }
 
-    return json({ reply, memory: memory?.length ? memory : undefined });
+    return json({
+      reply,
+      memory: memory?.length ? memory : undefined,
+      proposedActions: proposedActions?.length ? proposedActions : undefined,
+    });
   } catch (e) {
     if (e instanceof GeminiError) {
       return json({ error: e.message, code: e.code, model: geminiModel() }, e.status);

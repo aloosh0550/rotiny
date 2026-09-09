@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SubpageHeader } from "@/components/more/SubpageHeader";
+import { ProposedActionCard } from "@/components/assistant/ProposedActionCard";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
 import { useAssistant } from "@/lib/hooks/useAssistant";
 import { useSuggestions } from "@/lib/hooks/useSuggestions";
@@ -18,7 +19,17 @@ import { cn } from "@/lib/utils/cn";
 export default function AssistantPage() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { messages, status, available, savedMemory, send, reset } = useAssistant();
+  const {
+    messages,
+    status,
+    available,
+    savedMemory,
+    proposedActions,
+    send,
+    confirmProposed,
+    rejectProposed,
+    reset,
+  } = useAssistant();
   const suggestions = useSuggestions();
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -115,6 +126,15 @@ export default function AssistantPage() {
               {t("assistant.thinking")}
             </div>
           )}
+          {proposedActions.map((a, i) => (
+            <div key={a.logId ?? `pa-${i}`} className="self-stretch">
+              <ProposedActionCard
+                action={a}
+                onConfirm={(id) => void confirmProposed(id)}
+                onReject={(id) => void rejectProposed(id)}
+              />
+            </div>
+          ))}
           {savedMemory.map((mem, i) => (
             <p key={`mem-${i}`} className="self-start text-xs text-text-tertiary">
               {t("assistant.memorySaved", { text: mem })}

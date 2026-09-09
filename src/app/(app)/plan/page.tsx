@@ -40,7 +40,7 @@ import {
 } from "@/lib/db/repositories";
 import { onEntityMutated } from "@/lib/services/effects/appEffects";
 import { getAIProvider } from "@/lib/ai/registry";
-import { computePlan } from "@/lib/planner/aiPlan";
+import { regenerateDailyPlan } from "@/lib/planner/aiPlan";
 import { todayKey, formatTime } from "@/lib/time/dateUtils";
 import { ROUTES } from "@/lib/constants/routes";
 import type { DailyPlanBucket, DailyPlanItem, EnergyLevel } from "@/lib/types";
@@ -96,7 +96,7 @@ export default function DailyPlanPage() {
     }
     setRegenerating(true);
     try {
-      const result = await computePlan(
+      await regenerateDailyPlan(
         {
           now: new Date(),
           energy: energy ?? null,
@@ -112,12 +112,6 @@ export default function DailyPlanPage() {
           locale,
         },
       );
-      await dailyPlansRepository.upsertForDate(todayKey(), {
-        energy: energy ?? null,
-        generatedBy: result.source === "ai" ? "ai" : "local",
-        items: result.items,
-        regeneratedAt: new Date().toISOString(),
-      });
     } finally {
       setRegenerating(false);
     }

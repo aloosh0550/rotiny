@@ -58,4 +58,10 @@ export const aiActionsRepository = {
       .sort((a, b) => b.sync.createdAt.localeCompare(a.sync.createdAt))
       .slice(0, limit);
   },
+
+  /** User cleared the visible history. Soft-deletes every log row. */
+  async clearHistory(): Promise<void> {
+    const all = await base.getAll();
+    await Promise.all(all.map((a) => base.delete(a.id)));
+  },
 };

@@ -85,3 +85,15 @@ export function formatDayLabel(date: Date, locale: Locale): string {
 export function combineDateAndTime(dateKeyStr: string, time: string): string {
   return new Date(`${dateKeyStr}T${time}:00`).toISOString();
 }
+
+/** Compact "just now / 5m / 3h / 2d / <date>" — for logs and history lists. */
+export function formatRelativeTime(date: Date, locale: Locale, now: Date = new Date()): string {
+  const mins = Math.round((now.getTime() - date.getTime()) / 60_000);
+  if (mins < 1) return locale === "ar" ? "الآن" : "just now";
+  if (mins < 60) return locale === "ar" ? `قبل ${mins} د` : `${mins}m ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return locale === "ar" ? `قبل ${hrs} س` : `${hrs}h ago`;
+  const days = Math.round(hrs / 24);
+  if (days < 7) return locale === "ar" ? `قبل ${days} ي` : `${days}d ago`;
+  return formatMonthDay(date, locale);
+}
