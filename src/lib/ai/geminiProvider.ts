@@ -71,6 +71,7 @@ export class GeminiProvider implements AIProvider {
 
     if (res.status === 401 || res.status === 403) throw new AIUnavailableError("unauthorized");
     if (res.status === 501 || res.status === 424) throw new AIUnavailableError("unconfigured");
+    if (res.status === 429) throw new AIUnavailableError("rate-limited");
     if (!res.ok) throw new AIUnavailableError("server", `AI proxy ${res.status}`);
 
     let json: unknown;
@@ -145,6 +146,7 @@ export class GeminiProvider implements AIProvider {
 
     if (res.status === 401 || res.status === 403) throw new AIUnavailableError("unauthorized");
     if (res.status === 501 || res.status === 424) throw new AIUnavailableError("unconfigured");
+    if (res.status === 429) throw new AIUnavailableError("rate-limited");
     if (!res.ok) throw new AIUnavailableError("server", `AI plan ${res.status}`);
 
     let json: unknown;
