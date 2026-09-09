@@ -46,7 +46,8 @@ export function buildSystemPrompt(persona: AIPersona, locale: "ar" | "en"): stri
   return `${RULES_AR}\nاسمك «${persona.name}». ${PERSONALITY_AR[persona.personality]}`;
 }
 
-/** Render the context as a compact, clearly-fenced block. */
+/** Render the context as a compact, clearly-fenced block. Each item is prefixed
+ *  with its opaque ref (e.g. `[t1]`) so an action can reference it without an id. */
 export function renderContext(ctx: AIContext, locale: "ar" | "en"): string {
   const lines: string[] = [];
   const L = (ar: string, en: string) => (locale === "en" ? en : ar);
@@ -55,19 +56,19 @@ export function renderContext(ctx: AIContext, locale: "ar" | "en"): string {
   if (ctx.tasks.length) {
     lines.push(
       `${L("مهام اليوم", "today's tasks")}: ` +
-        ctx.tasks.map((t) => `- ${t.title} [${t.status}/${t.priority}]`).join("; "),
+        ctx.tasks.map((t) => `[${t.ref}] ${t.title} (${t.status}/${t.priority})`).join("; "),
     );
   }
   if (ctx.plan.length) {
     lines.push(
       `${L("الخطة", "plan")}: ` +
-        ctx.plan.map((p) => `- (${p.bucket}) ${p.title}${p.done ? " ✓" : ""}`).join("; "),
+        ctx.plan.map((p) => `[${p.ref}] (${p.bucket}) ${p.title}${p.done ? " ✓" : ""}`).join("; "),
     );
   }
   if (ctx.habits.length) {
     lines.push(
       `${L("العادات", "habits")}: ` +
-        ctx.habits.map((h) => `- ${h.title}${h.doneToday ? " ✓" : ""}`).join("; "),
+        ctx.habits.map((h) => `[${h.ref}] ${h.title}${h.doneToday ? " ✓" : ""}`).join("; "),
     );
   }
   if (ctx.goals.length) {

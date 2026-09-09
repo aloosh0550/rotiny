@@ -13,6 +13,7 @@
  */
 
 import { z } from "zod";
+import type { AIRefMap } from "./types";
 
 export const AI_ACTION_KINDS = [
   "reorderPlanItem",
@@ -88,4 +89,67 @@ export function parseAiAction(raw: unknown): AiAction | null {
   }
   const parsed = aiActionSchema.safeParse(raw);
   return parsed.success ? parsed.data : null;
+}
+
+/* --------------------------------------------------- proposed (wire) ------ */
+
+/**
+ * The wire shape of an action the assistant proposes. It references items by
+ * their per-turn context `ref` (t1, h2, …), never a real id.
+ */
+export const aiProposedActionSchema = z.object({
+  kind: z.string().min(1).max(40),
+  ref: z.string().min(1).max(12).optional(),
+  direction: z.union([z.literal(-1), z.literal(1)]).optional(),
+  bucket: z.enum(["morning", "afternoon", "evening"]).optional(),
+  reason: z.string().min(1).max(200),
+});
+
+/**
+ * Turn the assistant's proposed actions into raw internal-action objects by
+ * resolving each `ref` against the turn's ref-map. Anything unresolvable,
+ * forbidden, or of an unknown kind is dropped — the survivors still go through
+ * `parseAiAction` (Zod) inside the pipeline, so this is a convenience layer, not
+ * a trust boundary.
+ */
+export function resolveProposedActions(raw: unknown, refMap: AIRefMap): unknown[] {
+  if (!Array.isArray(raw)) return [];
+  const out: unknown[] = [];
+
+  for (const item of raw.slice(0, 5)) {
+    const parsed = aiProposedActionSchema.safeParse(item);
+    if (!parsed.success) continue;
+    const p = parsed.data;
+    if (isForbiddenActionKind(p.kind)) continue;
+    if (!AI_ACTION_KINDS.includes(p.kind as AiActionKind)) continue;
+    if (!p.ref) continue;
+    const target = refMap[p.ref];
+    if (!target) continue;
+
+    switch (p.kind as AiActionKind) {
+      case "deferTaskToTomorrow":
+      case "lowerTaskPriority":
+        if (target.type !== "task") continue;
+        out.push({ kind: p.kind, taskId: target.id, reason: p.reason });
+        break;
+      case "markPlanItemDone":
+        out.push({ kind: p.kind, refType: target.type, refId: target.id, reason: p.reason });
+        break;
+      case "moveItemToBucket":
+        if (!p.bucket) continue;
+        out.push({ kind: p.kind, refType: target.type, refId: target.id, bucket: p.bucket, reason: p.reason });
+        break;
+      case "reorderPlanItem":
+        if (p.direction !== -1 && p.direction !== 1) continue;
+        out.push({
+          kind: p.kind,
+          refType: target.type,
+          refId: target.id,
+          direction: p.direction,
+          reason: p.reason,
+        });
+        break;
+    }
+  }
+  return out;
 }

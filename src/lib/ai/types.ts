@@ -11,12 +11,30 @@ export interface AIContext {
   today: string;
   /** "high" | "good" | "medium" | "low" | null */
   energy: string | null;
-  tasks: { title: string; status: string; priority: string }[];
-  plan: { bucket: string; title: string; done: boolean }[];
-  habits: { title: string; doneToday: boolean }[];
+  /** `ref` is an opaque per-turn handle (t1, h2, …) — the real row id never leaves the device */
+  tasks: { ref: string; title: string; status: string; priority: string }[];
+  plan: { ref: string; bucket: string; title: string; done: boolean }[];
+  habits: { ref: string; title: string; doneToday: boolean }[];
   goals: { title: string; horizon: string }[];
   /** enabled AI-memory lines, verbatim */
   memory: string[];
+}
+
+/** Maps a per-turn context ref (t1, h2, p3 …) back to the real local row. */
+export type AIRefMap = Record<string, { type: "task" | "habit" | "appointment"; id: string }>;
+
+/**
+ * An action the assistant proposes, as it comes off the wire. It references
+ * items by their context `ref` — NOT a real id — so the client resolves it
+ * against the turn's `AIRefMap` and then runs it through the same
+ * `parseAiAction → policy → pipeline` path as everything else.
+ */
+export interface AIProposedAction {
+  kind: string;
+  ref?: string;
+  direction?: -1 | 1;
+  bucket?: "morning" | "afternoon" | "evening";
+  reason: string;
 }
 
 export interface AIPersona {
@@ -41,6 +59,12 @@ export interface AIChatResponse {
    * `settings.ai.memoryEnabled` is on; always surfaced to the user afterwards.
    */
   memory?: { kind: "preference" | "pattern" | "fact"; text: string }[];
+  /**
+   * Optional concrete changes the user seems to be asking for. NEVER applied by
+   * the server or the model — the client resolves the refs and runs each one
+   * through Zod + policy + the pipeline.
+   */
+  proposedActions?: AIProposedAction[];
 }
 
 /* ----------------------------------------------------------- planning ----- */

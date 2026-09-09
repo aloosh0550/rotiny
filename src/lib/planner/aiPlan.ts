@@ -10,6 +10,7 @@
  */
 
 import { buildLocalPlan, type LocalPlan, type PlannerInput } from "./localPlanner";
+import { dailyPlansRepository } from "@/lib/db/repositories";
 import type { AIProvider, AIPlanCandidate } from "@/lib/ai/types";
 import type { AiSettings, DailyPlanItem } from "@/lib/types";
 import { todayKey } from "@/lib/time/dateUtils";
@@ -86,4 +87,29 @@ export async function computePlan(
   } catch {
     return { items: toItems(local), source: "local", fellBack: true };
   }
+}
+
+export type ComputePlanOpts = {
+  ai: AiSettings;
+  provider: AIProvider | null;
+  accessToken: string | null;
+  locale: "ar" | "en";
+};
+
+/**
+ * `computePlan` + persist today's plan. The single place both the `/plan`
+ * "regenerate" button and the "أنا متأخر" flow write an AI-or-local plan.
+ */
+export async function regenerateDailyPlan(
+  input: PlannerInput,
+  opts: ComputePlanOpts,
+): Promise<ComputePlanResult> {
+  const result = await computePlan(input, opts);
+  await dailyPlansRepository.upsertForDate(todayKey(), {
+    energy: input.energy ?? null,
+    generatedBy: result.source === "ai" ? "ai" : "local",
+    items: result.items,
+    regeneratedAt: new Date().toISOString(),
+  });
+  return result;
 }

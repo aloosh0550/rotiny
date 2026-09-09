@@ -11,8 +11,11 @@ import { useHabits, useCompletionsForDate } from "@/lib/hooks/useHabits";
 import { useNow } from "@/lib/hooks/useNow";
 import { useTodayEnergy } from "@/lib/hooks/useLocalPlan";
 import { useSettings } from "@/lib/hooks/useSettings";
+import { useAuth } from "@/lib/auth/AuthProvider";
 import { aiActionsRepository } from "@/lib/db/repositories";
 import { planReschedule } from "@/lib/planner/reschedule";
+import { regenerateDailyPlan } from "@/lib/planner/aiPlan";
+import { getAIProvider } from "@/lib/ai/registry";
 import { processActions, confirmAction, rejectAction, type ProcessedAction } from "@/lib/ai/pipeline";
 import { formatDuration } from "@/lib/time/dateUtils";
 import { todayKey } from "@/lib/time/dateUtils";
@@ -49,6 +52,7 @@ export function RescheduleSheet({ open, onClose }: { open: boolean; onClose: () 
   const completions = useCompletionsForDate(todayKey());
   const energy = useTodayEnergy();
   const settings = useSettings();
+  const { session } = useAuth();
   const now = useNow(60_000);
 
   const [touched, setTouched] = useState<Set<string>>(new Set());
@@ -105,6 +109,34 @@ export function RescheduleSheet({ open, onClose }: { open: boolean; onClose: () 
     setBusy(true);
     const out = await processActions(result.proposals, { autonomy, source: "reschedule" });
     bumpRuns();
+
+    // If AI planning is available, re-order what's left of the day (IDs verified +
+    // deterministic fallback are built into regenerateDailyPlan). Same run counter,
+    // so this can't loop. Never on failure — the day just keeps the local order.
+    const provider = settings ? getAIProvider(settings.ai) : null;
+    if (provider?.plan && tasks && appointments && habits && completions) {
+      try {
+        await regenerateDailyPlan(
+          {
+            now: new Date(),
+            energy: energy ?? null,
+            tasks,
+            appointments,
+            habits,
+            habitCompletions: completions,
+          },
+          {
+            ai: settings!.ai,
+            provider,
+            accessToken: session?.access_token ?? null,
+            locale,
+          },
+        );
+      } catch {
+        /* the deterministic reschedule already applied — plan order is unchanged */
+      }
+    }
+
     setRan(out);
     setBusy(false);
   }

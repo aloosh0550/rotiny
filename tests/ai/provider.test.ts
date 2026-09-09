@@ -116,6 +116,31 @@ describe("GeminiProvider", () => {
     expect(res.memory).toEqual([{ kind: "preference", text: "يفضّل الرياضة صباحًا" }]);
   });
 
+  it("passes proposedActions through verbatim (client resolves + re-validates)", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          reply: "حسنًا",
+          proposedActions: [
+            { kind: "deferTaskToTomorrow", ref: "t2", reason: "لا يتّسع الوقت" },
+            "not an object",
+          ],
+        }),
+        { status: 200 },
+      ),
+    );
+    const res = await provider.chat(req, { accessToken: null });
+    expect(res.proposedActions).toEqual([
+      { kind: "deferTaskToTomorrow", ref: "t2", reason: "لا يتّسع الوقت" },
+    ]);
+  });
+
+  it("omits proposedActions when the server sends none", async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ reply: "أهلًا" }), { status: 200 }));
+    const res = await provider.chat(req, { accessToken: null });
+    expect(res.proposedActions).toBeUndefined();
+  });
+
   describe("plan()", () => {
     const planReq: AIPlanRequest = {
       today: "2026-09-07",

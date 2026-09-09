@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Switch } from "@/components/ui/Switch";
 import { Button } from "@/components/ui/Button";
 import { SubpageHeader } from "@/components/more/SubpageHeader";
+import { AiActionHistory } from "@/components/assistant/AiActionHistory";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { useAiMemory } from "@/lib/hooks/useAiMemory";
@@ -208,6 +209,8 @@ export default function AiSettingsPage() {
               </section>
             </>
           )}
+
+          <AiActionHistory />
 
           <Card padding="sm" className="text-xs text-text-tertiary">
             <p className="font-semibold text-text-secondary">{t("assistantSettings.whatIsShared")}</p>

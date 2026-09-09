@@ -97,7 +97,18 @@ export class GeminiProvider implements AIProvider {
           .map((m) => ({ kind: m.kind as "preference" | "pattern" | "fact", text: m.text }))
       : undefined;
 
-    return { reply: reply.trim(), memory: memory?.length ? memory : undefined };
+    // Proposed actions are passed through verbatim — the client resolves refs and
+    // re-validates every one through Zod + policy + the pipeline.
+    const rawActions = (json as { proposedActions?: unknown }).proposedActions;
+    const proposedActions = Array.isArray(rawActions)
+      ? (rawActions.filter((a) => a && typeof a === "object") as AIChatResponse["proposedActions"])
+      : undefined;
+
+    return {
+      reply: reply.trim(),
+      memory: memory?.length ? memory : undefined,
+      proposedActions: proposedActions?.length ? proposedActions : undefined,
+    };
   }
 
   async plan(
