@@ -18,6 +18,7 @@ import type {
   Achievement,
   AiConversation,
   AiMemory,
+  AiActionLog,
   UserSettings,
   SyncQueueEntry,
 } from "@/lib/types";
@@ -50,6 +51,7 @@ export class RoutiniDB extends Dexie {
   achievements!: Table<Achievement, string>;
   aiConversations!: Table<AiConversation, string>;
   aiMemory!: Table<AiMemory, string>;
+  aiActions!: Table<AiActionLog, string>;
   settings!: Table<UserSettings, string>;
   syncQueue!: Table<SyncQueueEntry, string>;
 
@@ -138,6 +140,13 @@ export class RoutiniDB extends Dexie {
     this.version(7).stores({
       aiConversations: "id, sync.deletedAt",
       aiMemory: "id, kind, sync.deletedAt",
+    });
+
+    // v8 — additive: the planner/assistant action audit log (Phase 11). New store
+    // only. Local-first — syncs once 20260914000000_phase11_ai_actions.sql is
+    // applied and `ai_actions` is added to SYNCED_TABLES.
+    this.version(8).stores({
+      aiActions: "id, status, sync.deletedAt",
     });
   }
 }

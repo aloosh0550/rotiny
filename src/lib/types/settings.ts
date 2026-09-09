@@ -67,6 +67,18 @@ export type AiPersonality = "supportive" | "direct" | "concise" | "playful" | "a
 export type AiProviderId = "gemini" | "none";
 
 /**
+ * How much the AI/planner may do on its own before asking.
+ * - `conservative` — everything is proposed; nothing applies without a tap.
+ * - `balanced`     — trivial, reversible steps (reorder a plan item, mark done)
+ *                    apply automatically; anything that moves/defers/re-prioritises
+ *                    a task is proposed.
+ * - `automatic`    — planning + rescheduling of tasks/habits apply automatically;
+ *                    anything touching an appointment still always asks, and
+ *                    nothing is ever deleted automatically.
+ */
+export type AiAutonomy = "conservative" | "balanced" | "automatic";
+
+/**
  * AI is entirely opt-in. `enabled` off → no provider is ever constructed, no
  * context is built, no request leaves the device. The core app is unaffected
  * either way. No API key lives here or anywhere in the client — see
@@ -78,6 +90,8 @@ export interface AiSettings {
   /** the assistant's display name, e.g. "رفيق" */
   assistantName: string;
   personality: AiPersonality;
+  /** how much the planner/AI may do without asking — see AiAutonomy */
+  autonomy: AiAutonomy;
   /** when off: no memory is written and none is sent in context */
   memoryEnabled: boolean;
   /** when off: chat still works but no task/habit/plan context is attached */
@@ -157,6 +171,7 @@ export const DEFAULT_AI_SETTINGS: AiSettings = {
   provider: "gemini",
   assistantName: "رفيق",
   personality: "supportive",
+  autonomy: "conservative",
   memoryEnabled: true,
   shareContext: true,
 };

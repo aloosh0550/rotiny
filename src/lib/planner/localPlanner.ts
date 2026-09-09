@@ -68,6 +68,11 @@ function sameDay(a: Date, b: Date): boolean {
   );
 }
 
+/** local YYYY-MM-DD for a Date (matches `todayKey()` in dateUtils). */
+function localKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function bucketForHour(hour: number): Bucket {
   if (hour < 12) return "morning";
   if (hour < 17) return "afternoon";
@@ -169,8 +174,12 @@ export function buildLocalPlan(input: PlannerInput): LocalPlan {
   }
 
   // --- pending tasks -----------------------------------------------------
+  const dayKey = localKey(now);
   for (const t of tasks) {
     if (t.status !== "pending") continue;
+    // a task deliberately planned for a later day is not part of *today's* plan
+    // (deferring a task to tomorrow sets `plannedFor` — see ai/pipeline.ts)
+    if (t.plannedFor && t.plannedFor > dayKey) continue;
     const { score, reason } = scoreTask(t, now, energy);
     const at = t.hasTime && t.dueAt ? t.dueAt : null;
     const hour = at ? new Date(at).getHours() : now.getHours();

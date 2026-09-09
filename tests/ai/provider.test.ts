@@ -24,6 +24,7 @@ const AI: AiSettings = {
   provider: "gemini",
   assistantName: "رفيق",
   personality: "supportive",
+  autonomy: "conservative",
   memoryEnabled: true,
   shareContext: true,
 };

@@ -16,7 +16,7 @@ Branch `redesign/routini-v2`. Plan: `IMPLEMENTATION_PLAN.md` (v3, cloud-first).
 | **9 · AI Assistant + Gemini (architecture-first)** | ✅ done | `ai_conversations` + `ai_memory` cloud tables (RLS, realtime, synced) + Dexie v7. **`AIProvider` abstraction** (`src/lib/ai/`): `GeminiProvider` holds **no key** — POSTs the turn + minimal context to a server proxy (`aiEndpoint()`, a Supabase Edge Function) with the user's JWT; `registry.getAIProvider()` returns `null` when AI is off / provider `none` / endpoint unconfigured → quiet fallback, rest of app unaffected. `AIUnavailableError` normalises every failure. Minimal PII-aware `buildAIContext` (today only: titles, energy, enabled memory — no ids/notes/history), sent only on a user turn and only when `shareContext` on. Deterministic `computeSuggestions` (overdue / energy / plan / streak / goal-deadline / all-done — **no AI, works offline**, 9 tests). `/assistant` chat page + suggestions. `/more/settings/ai` — enable, name, 5 personalities, memory on/off + view/disable/delete, context toggle, "what gets shared" + setup notice. New `ai` block in `UserSettings` (default **off**) with top-level backfill. Edge Function skeleton + README at `supabase/functions/ai-chat/` (not deployed). 18 AI unit tests + integration round-trip. Nav: assistant in Sidebar + `/more`. |
 | 9b · Notifications + interactive actions | ⬜ | (plan phase 9 — deferred behind AI) |
 | **10 · Widgets / PWA + Push** | 🟡 partial | **J3 PWA/SW done + verified**: `public/sw.js` v2 — precache every top-level route (incl. assistant/reviews/achievements/areas/goals), per-URL navigation cache, `/offline/` fallback, **Background Sync + Periodic Sync** flush the outbox on reconnect (`src/lib/pwa/outboxSync.ts` → `syncEngine.flush()`); `scripts/pwa-check.mjs` (`npm run pwa:check`) drives Chromium offline and asserts all 12 routes render + unknown→offline. **J2 widget snapshot done + verified**: `buildSnapshot()` += `v`, `now` (deterministic planner item+reason), `energy`, `goals` (real `computeGoalProgress`, ≤3 active) — one-way from the replica; existing widget Java `optString`/`optJSONArray` ignores new fields (no APK change). 4 `tests/widget/snapshot.test.ts`. **J1 native widget rendering** + **J4 FCM push** → `docs/PHASE_10_REMAINING.md` (blocked: no Android SDK/device; needs Firebase project). Migration `20260913000000_phase10_devices.sql` **created, NOT applied** (awaits approval; client sync wiring deferred until applied). |
-| 11 · AI Planning + Rescheduling + autonomy | ⬜ | builds on phase 9 provider |
+| **11 · AI Planning + Smart Rescheduling + Autonomy** | ✅ done (see `docs/PHASE_11.md`) | `AiSettings.autonomy` (conservative/balanced/automatic) + settings selector. **`src/lib/ai/`**: `actions.ts` (5 Zod action kinds, no delete, appt-mutation forbidden), `policy.ts` (`decideAction → auto/confirm/forbidden` per autonomy; hard invariants), `pipeline.ts` (`raw → Zod+guard → policy → repos → log`; **AI never touches DB**; `processActions`/`confirmAction`/`rejectAction`). **`src/lib/planner/`**: `reschedule.ts` (deterministic — move past-window items, defer overflow tasks lowest-priority-first; no delete/no appt; loop guard = 6/day + per-item from history; Arabic reasons), `aiPlan.ts` (`computePlan` — always `buildLocalPlan`, AI re-orders/rephrases only, silent fallback, never on render). `buildLocalPlan` excludes tasks `plannedFor` a later day. `AIProvider.plan?()` + `GeminiProvider.plan()` + `ai-plan` Edge Function skeleton. `RescheduleSheet` replaces `LateMode` on `/plan`; regenerate button uses AI when available. `AiActionLog` + Dexie v8 `aiActions` (local-first). **29 new tests** (policy/pipeline/reschedule/aiPlan/localPlanner). Migration `20260914000000_phase11_ai_actions.sql` **created + local-verified, NOT applied**. |
 | 12 · Gemini eval + prompt tuning (free-tier) | ⬜ | no Anthropic; needs owner to deploy `ai-chat` + set `GEMINI_API_KEY` |
 | 13 · AI Assistant deepening (voice, richer memory) | ⬜ | |
 | 14 · Watch + Health + Location + Voice | ⬜ | |
@@ -25,7 +25,7 @@ Branch `redesign/routini-v2`. Plan: `IMPLEMENTATION_PLAN.md` (v3, cloud-first).
 
 ## Verification status (current)
 
-- `tsc` clean · `lint` clean · `vitest` **96 pass / 11 integration skipped in CI**
+- `tsc` clean · `lint` clean · `vitest` **126 pass / 11 integration skipped in CI**
 - `next build` (cloud + `build:local`) clean · `cap sync android` clean
 - Playwright QA (`build:local`): **36/36** screens, 360/393, RTL + dark, no overflow
 - **PWA offline** (`npm run pwa:check`): SW installs + controls, app-shell cache = 19 entries,
@@ -47,9 +47,9 @@ Branch `redesign/routini-v2`. Plan: `IMPLEMENTATION_PLAN.md` (v3, cloud-first).
   `supabase_realtime` membership) via read-only checks.
   Edge Function `ai-chat` **deployed** to Production (`GEMINI_API_KEY` set as a hosted secret;
   smoke test: OPTIONS 200, unauthenticated POST 401, GET 405).
-  **Pending: `20260913000000_phase10_devices.sql`** (Phase 10 J4 — `devices` table for push +
-  presence; additive, verified on the local stack; NOT applied; client sync wiring held
-  until it is).
+  **Pending (both additive, local-verified, NOT applied; client sync wiring held until applied):**
+  `20260913000000_phase10_devices.sql` (Phase 10 J4 — `devices` for push + presence),
+  `20260914000000_phase11_ai_actions.sql` (Phase 11 — `ai_actions` audit log).
 
 ## Not yet verified (needs a human)
 
