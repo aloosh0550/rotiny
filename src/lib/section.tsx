@@ -34,6 +34,10 @@ const INK_VAR: Record<SectionKey, string> = {
 
 function sectionFromPath(pathname: string): SectionKey {
   if (pathname === ROUTES.home) return "home";
+  if (pathname.startsWith(ROUTES.plan)) return "home"; // "اليوم" is the day hub — teal
+  if (pathname.startsWith(ROUTES.areas) || pathname.startsWith(ROUTES.goals)) return "home";
+  if (pathname.startsWith(ROUTES.reviews) || pathname.startsWith(ROUTES.achievements)) return "home";
+  if (pathname.startsWith(ROUTES.assistant)) return "home";
   if (pathname.startsWith(ROUTES.appointments)) return "appointments";
   if (pathname.startsWith(ROUTES.tasks)) return "tasks";
   if (pathname.startsWith(ROUTES.habits)) return "habits";

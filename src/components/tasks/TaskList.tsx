@@ -57,11 +57,21 @@ export function TaskList() {
 
   const pending = tasks.filter((task) => task.status === "pending");
   const completed = tasks.filter((task) => task.status === "completed");
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
   const todayEnd = endOfDay(now);
 
   // "today" also surfaces overdue tasks; "upcoming" is everything else pending
   // (dated later + undated), so nothing pending falls out of the visible filters.
-  const todayItems = pending.filter((t2) => t2.dueAt != null && new Date(t2.dueAt) <= todayEnd);
+  const overdueItems = pending.filter(
+    (t2) => t2.dueAt != null && new Date(t2.dueAt) < todayStart,
+  );
+  const dueTodayItems = pending.filter(
+    (t2) =>
+      t2.dueAt != null &&
+      new Date(t2.dueAt) >= todayStart &&
+      new Date(t2.dueAt) <= todayEnd,
+  );
   const upcomingItems = pending.filter((t2) => t2.dueAt == null || new Date(t2.dueAt) > todayEnd);
 
   const visible =
@@ -69,7 +79,8 @@ export function TaskList() {
       ? sortTasks(completed)
       : filter === "upcoming"
         ? sortTasks(upcomingItems)
-        : sortTasks(todayItems);
+        : sortTasks(dueTodayItems);
+  const showOverdue = filter === "today" && overdueItems.length > 0;
 
   return (
     <div className="flex flex-col gap-4 px-4 py-3">
@@ -83,20 +94,41 @@ export function TaskList() {
         onChange={(v) => setFilter(v as Filter)}
       />
 
+      {showOverdue && (
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[13px] font-semibold text-text-secondary">
+              {t("tasks.overdueGroupTitle")}
+            </span>
+            <span className="text-xs text-text-tertiary">{t("tasks.overdueGroupHint")}</span>
+          </div>
+          {sortTasks(overdueItems).map((task) => (
+            <TaskRow key={task.id} task={task} />
+          ))}
+        </div>
+      )}
+
       {visible.length === 0 ? (
-        <EmptyState
-          compact
-          icon={<ListTodo />}
-          title={
-            filter === "completed"
-              ? t("tasks.noCompleted")
-              : filter === "upcoming"
-                ? t("tasks.noUpcoming")
-                : t("tasks.noToday")
-          }
-        />
+        showOverdue ? null : (
+          <EmptyState
+            compact
+            icon={<ListTodo />}
+            title={
+              filter === "completed"
+                ? t("tasks.noCompleted")
+                : filter === "upcoming"
+                  ? t("tasks.noUpcoming")
+                  : t("tasks.noToday")
+            }
+          />
+        )
       ) : (
         <div className="flex flex-col gap-2">
+          {showOverdue && (
+            <span className="text-[13px] font-semibold text-text-secondary">
+              {t("tasks.dueTodayGroupTitle")}
+            </span>
+          )}
           {visible.map((task) => (
             <TaskRow key={task.id} task={task} />
           ))}

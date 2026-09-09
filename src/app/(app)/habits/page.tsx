@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { HabitList } from "@/components/habits/HabitList";
 import { HabitForm } from "@/components/habits/HabitForm";
+import { TrackerPresetPicker } from "@/components/habits/TrackerPresetPicker";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
 import { useHabits } from "@/lib/hooks/useHabits";
 import { ROUTES } from "@/lib/constants/routes";
@@ -29,9 +30,11 @@ export default function HabitsPage() {
   const { show } = useToast();
   const habits = useHabits();
   const [addOpen, setAddOpen] = useState(false);
+  const [addStep, setAddStep] = useState<"picker" | "custom">("picker");
 
   const closeAdd = useCallback(() => {
     setAddOpen(false);
+    setAddStep("picker");
     router.replace(ROUTES.habits);
   }, [router]);
 
@@ -69,13 +72,23 @@ export default function HabitsPage() {
       )}
 
       <Sheet open={addOpen} onClose={closeAdd} title={t("habits.newHabitTitle")}>
-        <HabitForm
-          onSaved={() => {
-            closeAdd();
-            show(t("common.saved"), { tone: "success" });
-          }}
-          onCancel={closeAdd}
-        />
+        {addStep === "picker" ? (
+          <TrackerPresetPicker
+            onCustom={() => setAddStep("custom")}
+            onCreated={() => {
+              closeAdd();
+              show(t("common.saved"), { tone: "success" });
+            }}
+          />
+        ) : (
+          <HabitForm
+            onSaved={() => {
+              closeAdd();
+              show(t("common.saved"), { tone: "success" });
+            }}
+            onCancel={closeAdd}
+          />
+        )}
       </Sheet>
     </div>
   );

@@ -2,7 +2,7 @@ import { db } from "@/lib/db/schema";
 import type { Task, TaskStatus } from "@/lib/types";
 import { makeSyncedRepository } from "./helpers";
 
-const base = makeSyncedRepository<Task>(db.tasks);
+const base = makeSyncedRepository<Task>(db.tasks, "tasks");
 
 export const tasksRepository = {
   ...base,

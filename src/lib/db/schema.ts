@@ -8,6 +8,16 @@ import type {
   DhikrCategory,
   Dhikr,
   DhikrProgress,
+  DailyPlan,
+  DailyEnergy,
+  Measurement,
+  LifeArea,
+  Goal,
+  GoalMilestone,
+  Review,
+  Achievement,
+  AiConversation,
+  AiMemory,
   UserSettings,
   SyncQueueEntry,
 } from "@/lib/types";
@@ -30,6 +40,16 @@ export class RoutiniDB extends Dexie {
   dhikrCategories!: Table<DhikrCategory, string>;
   adhkar!: Table<Dhikr, string>;
   dhikrProgress!: Table<DhikrProgress, string>;
+  dailyPlans!: Table<DailyPlan, string>;
+  dailyEnergy!: Table<DailyEnergy, string>;
+  measurements!: Table<Measurement, string>;
+  lifeAreas!: Table<LifeArea, string>;
+  goals!: Table<Goal, string>;
+  goalMilestones!: Table<GoalMilestone, string>;
+  reviews!: Table<Review, string>;
+  achievements!: Table<Achievement, string>;
+  aiConversations!: Table<AiConversation, string>;
+  aiMemory!: Table<AiMemory, string>;
   settings!: Table<UserSettings, string>;
   syncQueue!: Table<SyncQueueEntry, string>;
 
@@ -86,6 +106,39 @@ export class RoutiniDB extends Dexie {
           );
         }
       });
+
+    // v3 — additive: persisted daily plan + daily energy (Phase 4). New stores
+    // only; no existing record is read or modified.
+    this.version(3).stores({
+      dailyPlans: "id, date, sync.deletedAt",
+      dailyEnergy: "id, date, sync.deletedAt",
+    });
+
+    // v4 — additive: per-day numeric measurements (Phase 6). New store only.
+    this.version(4).stores({
+      measurements: "id, refId, date, [refType+refId], sync.deletedAt",
+    });
+
+    // v5 — additive: Life Areas + Goals + Milestones (Phase 7). New stores only.
+    this.version(5).stores({
+      lifeAreas: "id, key, order, sync.deletedAt",
+      goals: "id, lifeAreaId, horizon, parentGoalId, sync.deletedAt",
+      goalMilestones: "id, goalId, order, sync.deletedAt",
+    });
+
+    // v6 — additive: Reviews + Achievements (Phase 8). New stores only.
+    this.version(6).stores({
+      reviews: "id, [period+periodKey], sync.deletedAt",
+      achievements: "id, key, sync.deletedAt",
+    });
+
+    // v7 — additive: AI conversations + user-managed AI memory (Phase 9). New
+    // stores only; nothing else is read or modified. Present but unused until
+    // the user turns AI on.
+    this.version(7).stores({
+      aiConversations: "id, sync.deletedAt",
+      aiMemory: "id, kind, sync.deletedAt",
+    });
   }
 }
 

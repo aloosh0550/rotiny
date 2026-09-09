@@ -4,7 +4,7 @@ import { generateId } from "@/lib/utils/id";
 import { createSyncMeta } from "@/lib/utils/sync";
 import { makeSyncedRepository } from "./helpers";
 
-const base = makeSyncedRepository<TaskCategory>(db.taskCategories);
+const base = makeSyncedRepository<TaskCategory>(db.taskCategories, "taskCategories");
 
 export const taskCategoriesRepository = {
   ...base,

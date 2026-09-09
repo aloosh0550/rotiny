@@ -2,11 +2,31 @@ import { db } from "@/lib/db/schema";
 import type { UserSettings } from "@/lib/types";
 import {
   DEFAULT_ADHKAR_TIMES,
+  DEFAULT_AI_SETTINGS,
   DEFAULT_CALENDAR_INTEGRATION,
   DEFAULT_INTELLIGENCE_SETTINGS,
   DEFAULT_NOTIFICATION_PREFERENCES,
   DEFAULT_PRAYER_TIMES_SETTINGS,
 } from "@/lib/types";
+import { isSupabaseConfigured } from "@/lib/config/env";
+import { generateId } from "@/lib/utils/id";
+
+async function enqueueSettingsPush(): Promise<void> {
+  if (!isSupabaseConfigured()) return;
+  try {
+    await db.syncQueue.add({
+      id: generateId(),
+      entityType: "settings",
+      entityId: "singleton",
+      operation: "update",
+      payload: null,
+      createdAt: new Date().toISOString(),
+      attempts: 0,
+    });
+  } catch {
+    /* best-effort */
+  }
+}
 
 export function createDefaultSettings(): UserSettings {
   const now = new Date().toISOString();
@@ -18,6 +38,7 @@ export function createDefaultSettings(): UserSettings {
     weekStartsOn: 0,
     notifications: DEFAULT_NOTIFICATION_PREFERENCES,
     intelligence: DEFAULT_INTELLIGENCE_SETTINGS,
+    ai: DEFAULT_AI_SETTINGS,
     calendarProvider: "local",
     calendarIntegration: DEFAULT_CALENDAR_INTEGRATION,
     prayerTimes: DEFAULT_PRAYER_TIMES_SETTINGS,
@@ -41,6 +62,7 @@ function migrateSettingsShape(s: UserSettings): UserSettings {
     ...s,
     notifications,
     intelligence: { ...DEFAULT_INTELLIGENCE_SETTINGS, ...s.intelligence },
+    ai: { ...DEFAULT_AI_SETTINGS, ...s.ai },
     calendarIntegration: { ...DEFAULT_CALENDAR_INTEGRATION, ...s.calendarIntegration },
     prayerTimes: { ...DEFAULT_PRAYER_TIMES_SETTINGS, ...s.prayerTimes },
   };
@@ -77,6 +99,16 @@ export const settingsRepository = {
     const current = await this.ensureDefaults();
     const updated: UserSettings = { ...current, ...patch, updatedAt: new Date().toISOString() };
     await db.settings.put(updated);
+    void enqueueSettingsPush();
     return updated;
+  },
+
+  /**
+   * Apply settings received from the cloud WITHOUT re-enqueuing a push
+   * (prevents a realtime echo loop). Used only by the SyncEngine.
+   */
+  async applyRemote(remote: Partial<UserSettings>): Promise<void> {
+    const current = await this.ensureDefaults();
+    await db.settings.put(migrateSettingsShape({ ...current, ...remote } as UserSettings));
   },
 };

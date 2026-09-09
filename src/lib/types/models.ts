@@ -1,5 +1,6 @@
 import type {
   CalendarProviderId,
+  EnergyLevel,
   ID,
   Priority,
   RecurrenceRule,
@@ -57,6 +58,16 @@ export interface Task {
   categoryId?: ID | null;
   /** "Most important" — surfaced first on Home, independent of priority. */
   pinned?: boolean;
+  /** Links to a Life Area (Phase 7). */
+  lifeAreaId?: ID | null;
+  /** Links to a Goal (Phase 7). */
+  goalId?: ID | null;
+  /** Effort weight for the planner: "low" | "med" | "high". */
+  energyCost?: "low" | "med" | "high" | null;
+  /** Free context tags, e.g. ["البيت", "مشاوير"]. */
+  context?: string[];
+  /** The day the user intends to do it (distinct from `dueAt`). YYYY-MM-DD. */
+  plannedFor?: string | null;
   sync: SyncMeta;
 }
 
@@ -65,6 +76,9 @@ export interface HabitTarget {
   value: number;
   unit?: string;
 }
+
+/** A first-class tracker preset kind (a Habit configured for one). */
+export type TrackerKind = "water" | "exercise" | "reading" | "skill";
 
 export interface Habit {
   id: ID;
@@ -76,6 +90,79 @@ export interface Habit {
   reminders: Reminder[];
   color?: string;
   archivedAt?: string | null;
+  /** Links to a Life Area (Phase 7). */
+  lifeAreaId?: ID | null;
+  /** Links to a Goal (Phase 7). */
+  goalId?: ID | null;
+  /** Set when this habit is one of the first-class trackers. */
+  trackerKind?: TrackerKind | null;
+  sync: SyncMeta;
+}
+
+/* ------------------------------------------------------------------ Phase 7 -- */
+
+export type LifeAreaKind =
+  | "worship"
+  | "exercise"
+  | "habits"
+  | "learning"
+  | "work"
+  | "health"
+  | "money"
+  | "family"
+  | "custom";
+
+export interface LifeArea {
+  id: ID;
+  key: string; // stable slug, unique per user
+  name: string;
+  icon: string; // lucide icon name
+  color: string; // extended-palette key
+  order: number;
+  enabled: boolean;
+  kind: LifeAreaKind;
+  sync: SyncMeta;
+}
+
+export type GoalHorizon = "long" | "month" | "week";
+export type GoalStatus = "active" | "done" | "paused" | "dropped";
+
+export interface Goal {
+  id: ID;
+  lifeAreaId?: ID | null;
+  parentGoalId?: ID | null;
+  title: string;
+  description?: string | null;
+  horizon: GoalHorizon;
+  targetValue?: number | null;
+  targetUnit?: string | null;
+  deadline?: string | null; // YYYY-MM-DD
+  status: GoalStatus;
+  sync: SyncMeta;
+}
+
+export interface GoalMilestone {
+  id: ID;
+  goalId: ID;
+  title: string;
+  targetValue?: number | null;
+  currentValue: number;
+  done: boolean;
+  order: number;
+  sync: SyncMeta;
+}
+
+export type MeasurementRefType = "habit" | "tracker" | "goal" | "custom";
+
+/** A per-day numeric value for anything measurable (current vs. its target). */
+export interface Measurement {
+  /** deterministic: `<userId>:<refType>:<refId>:<YYYY-MM-DD>` */
+  id: ID;
+  refType: MeasurementRefType;
+  refId: ID;
+  date: string; // YYYY-MM-DD local key
+  value: number;
+  unit?: string | null;
   sync: SyncMeta;
 }
 
@@ -125,5 +212,121 @@ export interface DhikrProgress {
   date: string; // YYYY-MM-DD local key
   count: number;
   completedAt?: string | null;
+  sync: SyncMeta;
+}
+
+/* ------------------------------------------------------------------ Phase 4 -- */
+
+export type DailyPlanRefType = "task" | "appointment" | "habit";
+export type DailyPlanItemStatus = "pending" | "done" | "skipped" | "moved";
+export type DailyPlanBucket = "morning" | "afternoon" | "evening";
+
+export interface DailyPlanItem {
+  refType: DailyPlanRefType;
+  refId: ID;
+  bucket: DailyPlanBucket;
+  order: number;
+  status: DailyPlanItemStatus;
+  /** the planner's "لماذا الآن؟" line, captured at generation time */
+  reason?: string;
+}
+
+export interface DailyPlan {
+  /** deterministic: `<userId>:<YYYY-MM-DD>` (or `local:<date>` when signed out) */
+  id: ID;
+  date: string; // YYYY-MM-DD local key
+  energy?: EnergyLevel | null;
+  generatedBy: "local" | "ai" | "manual";
+  items: DailyPlanItem[];
+  regeneratedAt?: string | null;
+  sync: SyncMeta;
+}
+
+export interface DailyEnergy {
+  id: ID; // `<userId>:<YYYY-MM-DD>`
+  date: string; // YYYY-MM-DD local key
+  level: EnergyLevel;
+  sync: SyncMeta;
+}
+
+/* ------------------------------------------------------------------ Phase 8 -- */
+
+export type ReviewPeriod = "day" | "week" | "month";
+
+/** The deterministic numbers behind a review — every value traceable to raw rows. */
+export interface ReviewMetrics {
+  tasksDone: number;
+  tasksDue: number;
+  habitsDone: number;
+  habitsDue: number;
+  adhkarDays?: number;
+  measurementsLogged?: number;
+  completionPct: number; // 0..100
+  /** vs the previous period of the same length, in percentage points. */
+  deltaPct?: number;
+  bestStreak?: number;
+  /** area key → completion pct for that area's items in the period. */
+  areas?: Record<string, number>;
+  strongestArea?: string | null;
+  weakestArea?: string | null;
+}
+
+export interface Review {
+  /** deterministic: `<userId>:<period>:<periodKey>` */
+  id: ID;
+  period: ReviewPeriod;
+  periodKey: string; // "2026-09-11" | "2026-W37" | "2026-09"
+  metrics: ReviewMetrics;
+  aiNote?: string | null;
+  sync: SyncMeta;
+}
+
+export interface AchievementProgress {
+  current: number;
+  target: number;
+}
+
+export interface Achievement {
+  /** deterministic: `<userId>:<key>` */
+  id: ID;
+  key: string;
+  unlockedAt?: string | null;
+  progress: AchievementProgress;
+  sync: SyncMeta;
+}
+
+/* ------------------------------------------------------------------ Phase 9 -- */
+
+export type AiMessageRole = "user" | "assistant";
+
+export interface AiMessage {
+  role: AiMessageRole;
+  content: string;
+  /** ISO timestamp */
+  ts: string;
+}
+
+export interface AiConversation {
+  id: ID;
+  title: string;
+  messages: AiMessage[];
+  pinned?: boolean;
+  sync: SyncMeta;
+}
+
+export type AiMemoryKind = "preference" | "pattern" | "fact";
+
+/**
+ * A single thing the assistant remembers about the user. Always user-visible,
+ * always deletable, and `enabled` can be turned off to keep it without using it.
+ * Nothing is stored here unless AI memory is on and a turn proposed it.
+ */
+export interface AiMemory {
+  id: ID;
+  kind: AiMemoryKind;
+  text: string;
+  source?: string | null;
+  enabled: boolean;
+  confidence?: number | null;
   sync: SyncMeta;
 }

@@ -14,6 +14,11 @@ describe("resolveDeepLink", () => {
     expect(r?.action).toBe("completeTask");
     expect(r?.actionId).toBe("abc");
   });
+  it("routini://auth/callback?code=abc → auth callback page with the query", () => {
+    expect(resolveDeepLink("routini://auth/callback?code=abc")?.path).toBe(
+      "/auth/callback?code=abc",
+    );
+  });
   it("routini://appointment/xyz", () => {
     expect(resolveDeepLink("routini://appointment/xyz")?.path).toBe("/appointments/detail?id=xyz");
   });

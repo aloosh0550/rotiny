@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Brain, CalendarClock, Cloud, FileDown, Info, MoonStar, Shield } from "lucide-react";
+import { Bell, Brain, CalendarClock, Cloud, FileDown, Info, MoonStar, Shield, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { MenuList, type MenuListItem } from "@/components/more/MenuList";
@@ -31,6 +31,7 @@ export default function SettingsPage() {
     { href: ROUTES.settingsCalendar, icon: <CalendarClock className="size-5" />, label: t("calendarSync.title") },
     { href: ROUTES.settingsPrayer, icon: <MoonStar className="size-5" />, label: t("prayer.title") },
     { href: ROUTES.settingsIntelligence, icon: <Brain className="size-5" />, label: t("more.intelligence") },
+    { href: ROUTES.settingsAi, icon: <Sparkles className="size-5" />, label: t("assistantSettings.title") },
     { href: ROUTES.settingsSync, icon: <Cloud className="size-5" />, label: t("more.sync") },
     { href: ROUTES.settingsPrivacy, icon: <Shield className="size-5" />, label: t("more.privacy") },
     { href: ROUTES.settingsBackup, icon: <FileDown className="size-5" />, label: t("more.backup") },

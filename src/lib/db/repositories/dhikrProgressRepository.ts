@@ -4,7 +4,7 @@ import { generateId } from "@/lib/utils/id";
 import { createSyncMeta, touchSyncMeta } from "@/lib/utils/sync";
 import { makeSyncedRepository } from "./helpers";
 
-const base = makeSyncedRepository<DhikrProgress>(db.dhikrProgress);
+const base = makeSyncedRepository<DhikrProgress>(db.dhikrProgress, "dhikrProgress");
 
 export const dhikrProgressRepository = {
   ...base,

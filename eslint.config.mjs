@@ -16,6 +16,8 @@ const eslintConfig = defineConfig([
     "android/**",
     ".vercel/**",
     "coverage/**",
+    // Supabase Edge Functions run on Deno, not in the app build.
+    "supabase/functions/**",
   ]),
 ]);
 

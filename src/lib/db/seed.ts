@@ -310,7 +310,12 @@ async function seedHabits() {
   await db.habitCompletions.bulkAdd(completions);
 }
 
-export async function seedIfNeeded(): Promise<void> {
+/**
+ * @param withDemo  seed example tasks / appointments / habits (opt-in from
+ *                   onboarding). Adhkar + default categories always seed — they
+ *                   are core content, not demo data.
+ */
+export async function seedIfNeeded(withDemo = false): Promise<void> {
   const settings = await settingsRepository.ensureDefaults();
   if (settings.seedVersion >= CURRENT_SEED_VERSION) return;
 
@@ -319,7 +324,7 @@ export async function seedIfNeeded(): Promise<void> {
   // an existing (v1) user only gets the newly-added "wake" section.
   await seedAdhkar();
 
-  if (settings.seedVersion < 1) {
+  if (withDemo && settings.seedVersion < 1) {
     await seedAppointments();
     await seedTasks();
     await seedHabits();

@@ -8,11 +8,13 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
+    "test:integration": "RUN_SUPABASE_INTEGRATION=1 vitest run tests/integration",
+    "build:local": "NEXT_PUBLIC_SUPABASE_URL= NEXT_PUBLIC_SUPABASE_ANON_KEY= next build",
+    "qa": "npm run build:local && node scripts/qa.mjs",
     "icons": "node scripts/generate-icons.mjs",
     "cap:sync": "next build && cap sync android",
     "android:apk": "npm run cap:sync && cd android && ./gradlew assembleDebug",
-    "android:open": "cap open android",
-    "qa": "node scripts/qa.mjs"
+    "android:open": "cap open android"
   },
   "dependencies": {
     "@capacitor/android": "8.5.0",
@@ -25,6 +27,7 @@
     "@capacitor/splash-screen": "8.0.2",
     "@capacitor/status-bar": "8.0.3",
     "@ebarooni/capacitor-calendar": "8.3.0",
+    "@supabase/supabase-js": "^2.115.0",
     "adhan": "4.4.4",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
@@ -45,9 +48,11 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
+    "fake-indexeddb": "^6.2.5",
     "playwright": "^1.62.1",
     "png-to-ico": "^3.0.2",
     "sharp": "^0.35.4",
+    "supabase": "^2.116.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.11"

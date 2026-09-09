@@ -98,6 +98,10 @@ export const common = {
 export const nav = {
   ar: {
     home: "الرئيسية",
+    today: "اليوم",
+    assistant: "المساعد",
+    areas: "المجالات",
+    goals: "الأهداف",
     appointments: "مواعيدي",
     tasks: "مهامي",
     habits: "عاداتي",
@@ -107,6 +111,10 @@ export const nav = {
   },
   en: {
     home: "Home",
+    today: "Today",
+    assistant: "Assistant",
+    areas: "Areas",
+    goals: "Goals",
     appointments: "Appointments",
     tasks: "Tasks",
     habits: "Habits",

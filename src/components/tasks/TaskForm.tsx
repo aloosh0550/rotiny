@@ -14,6 +14,7 @@ import { RecurrenceEditor } from "@/components/shared/RecurrenceEditor";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
 import { useLiveQuery } from "dexie-react-hooks";
 import { taskCategoriesRepository, tasksRepository } from "@/lib/db/repositories";
+import { useLifeAreas, useGoals } from "@/lib/hooks/useAreasGoals";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { onEntityMutated } from "@/lib/services/effects/appEffects";
 import { generateId } from "@/lib/utils/id";
@@ -79,7 +80,22 @@ export function TaskForm({ task, onSaved, onCancel }: TaskFormProps) {
   };
   const [recurrence, setRecurrence] = useState<RecurrenceRule | null>(task?.recurrence ?? null);
   const [notes, setNotes] = useState(task?.notes ?? "");
+  const [energyCost, setEnergyCost] = useState<"low" | "med" | "high" | "">(task?.energyCost ?? "");
+  const [plannedFor, setPlannedFor] = useState(task?.plannedFor ?? "");
+  const [contextTags, setContextTags] = useState<string[]>(task?.context ?? []);
+  const [contextDraft, setContextDraft] = useState("");
   const [saving, setSaving] = useState(false);
+  const [lifeAreaId, setLifeAreaId] = useState<string>(task?.lifeAreaId ?? "");
+  const [goalId, setGoalId] = useState<string>(task?.goalId ?? "");
+  const areas = useLifeAreas() ?? [];
+  const goals = useGoals() ?? [];
+  const areaGoals = goals.filter((g) => !g.sync.deletedAt && (!lifeAreaId || g.lifeAreaId === lifeAreaId));
+
+  function addContextTag() {
+    const v = contextDraft.trim();
+    if (v && !contextTags.includes(v)) setContextTags((s) => [...s, v]);
+    setContextDraft("");
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -110,6 +126,11 @@ export function TaskForm({ task, onSaved, onCancel }: TaskFormProps) {
         pinned,
         reminders,
         recurrence,
+        energyCost: energyCost || null,
+        plannedFor: plannedFor || null,
+        context: contextTags,
+        lifeAreaId: lifeAreaId || null,
+        goalId: goalId || null,
       };
 
       if (isEdit && task) {
@@ -178,6 +199,33 @@ export function TaskForm({ task, onSaved, onCancel }: TaskFormProps) {
         />
       )}
 
+      {areas.length > 0 && (
+        <Select
+          label={t("goals.fieldArea")}
+          value={lifeAreaId}
+          onChange={(e) => {
+            setLifeAreaId(e.target.value);
+            setGoalId("");
+          }}
+          options={[
+            { value: "", label: t("goals.noArea") },
+            ...areas.map((a) => ({ value: a.id, label: a.name })),
+          ]}
+        />
+      )}
+
+      {areaGoals.length > 0 && (
+        <Select
+          label={t("goals.pageTitle")}
+          value={goalId}
+          onChange={(e) => setGoalId(e.target.value)}
+          options={[
+            { value: "", label: t("goals.noArea") },
+            ...areaGoals.map((g) => ({ value: g.id, label: g.title })),
+          ]}
+        />
+      )}
+
       <PriorityPicker label={t("tasks.fieldPriority")} value={priority} onChange={setPriority} />
 
       <div className="flex items-center justify-between">
@@ -200,6 +248,65 @@ export function TaskForm({ task, onSaved, onCancel }: TaskFormProps) {
         value={duration}
         onChange={(e) => setDuration(e.target.value)}
       />
+
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-semibold text-text-secondary">
+          {t("tasks.fieldEnergyCost")}
+        </span>
+        <div className="flex gap-2">
+          {(["low", "med", "high"] as const).map((lvl) => (
+            <button
+              key={lvl}
+              type="button"
+              onClick={() => setEnergyCost((c) => (c === lvl ? "" : lvl))}
+              className={`flex-1 rounded-lg border py-2 text-sm font-medium transition-colors ${
+                energyCost === lvl
+                  ? "border-accent bg-accent-soft text-accent-fg"
+                  : "border-border bg-surface text-text-secondary"
+              }`}
+            >
+              {t(`tasks.energy${lvl === "low" ? "Low" : lvl === "med" ? "Med" : "High"}`)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <DatePicker
+        label={t("tasks.fieldPlannedFor")}
+        value={plannedFor}
+        onChange={(e) => setPlannedFor(e.target.value)}
+      />
+
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-semibold text-text-secondary">{t("tasks.fieldContext")}</span>
+        {contextTags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {contextTags.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => setContextTags((s) => s.filter((x) => x !== tag))}
+                className="rounded-full bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent-fg"
+              >
+                {tag} ✕
+              </button>
+            ))}
+          </div>
+        )}
+        <Input
+          placeholder={t("tasks.contextPlaceholder")}
+          value={contextDraft}
+          dir="auto"
+          onChange={(e) => setContextDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addContextTag();
+            }
+          }}
+          onBlur={addContextTag}
+        />
+      </div>
 
       <Textarea
         label={t("tasks.fieldNotes")}

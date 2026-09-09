@@ -23,6 +23,7 @@ export default function OnboardingPage() {
   const { theme, setTheme } = useTheme();
   const [stepIndex, setStepIndex] = useState(0);
   const [notificationsWanted, setNotificationsWanted] = useState(true);
+  const [demoWanted, setDemoWanted] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const step = STEPS[stepIndex];
 
@@ -36,7 +37,7 @@ export default function OnboardingPage() {
         notifStatus = "denied";
       }
     }
-    await seedIfNeeded();
+    await seedIfNeeded(demoWanted);
     await settingsRepository.update({
       locale,
       theme,
@@ -158,6 +159,16 @@ export default function OnboardingPage() {
                     {t("onboarding.skipForNow")}
                   </button>
                 </div>
+
+                <label className="mt-2 flex items-center gap-2.5 rounded-lg border border-border bg-surface px-3.5 py-3 text-sm text-text-secondary">
+                  <input
+                    type="checkbox"
+                    checked={demoWanted}
+                    onChange={(e) => setDemoWanted(e.target.checked)}
+                    className="size-4 accent-[var(--accent)]"
+                  />
+                  {t("onboarding.demoDataLabel")}
+                </label>
               </>
             )}
           </motion.div>

@@ -3,11 +3,13 @@
 import { useState, type FormEvent } from "react";
 import { Input } from "@/components/ui/Input";
 import { Chip } from "@/components/ui/Chip";
+import { Select } from "@/components/ui/Select";
 import { Switch } from "@/components/ui/Switch";
 import { TimePicker } from "@/components/ui/TimePicker";
 import { Button } from "@/components/ui/Button";
 import { ReminderEditor } from "@/components/shared/ReminderEditor";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
+import { useLifeAreas, useGoals } from "@/lib/hooks/useAreasGoals";
 import { useNow } from "@/lib/hooks/useNow";
 import { habitsRepository } from "@/lib/db/repositories";
 import { onEntityMutated } from "@/lib/services/effects/appEffects";
@@ -68,6 +70,11 @@ export function HabitForm({ habit, onSaved, onCancel }: HabitFormProps) {
   );
   const [targetUnit, setTargetUnit] = useState(habit?.target?.unit ?? "");
   const [reminders, setReminders] = useState<Reminder[]>(habit?.reminders ?? []);
+  const [lifeAreaId, setLifeAreaId] = useState<string>(habit?.lifeAreaId ?? "");
+  const [goalId, setGoalId] = useState<string>(habit?.goalId ?? "");
+  const areas = useLifeAreas() ?? [];
+  const goals = useGoals() ?? [];
+  const areaGoals = goals.filter((g) => !g.sync.deletedAt && (!lifeAreaId || g.lifeAreaId === lifeAreaId));
 
   const [saving, setSaving] = useState(false);
 
@@ -132,6 +139,9 @@ export function HabitForm({ habit, onSaved, onCancel }: HabitFormProps) {
           timeOfDay,
           target,
           reminders,
+          lifeAreaId: lifeAreaId || null,
+          goalId: goalId || null,
+          trackerKind: habit.trackerKind ?? null,
         });
         await onEntityMutated({ type: "habit", op: "update", entity: updated });
       } else {
@@ -142,6 +152,9 @@ export function HabitForm({ habit, onSaved, onCancel }: HabitFormProps) {
           timeOfDay,
           target,
           reminders,
+          lifeAreaId: lifeAreaId || null,
+          goalId: goalId || null,
+          trackerKind: null,
           sync: createSyncMeta(),
         };
         await habitsRepository.create(newHabit);
@@ -242,6 +255,32 @@ export function HabitForm({ habit, onSaved, onCancel }: HabitFormProps) {
       </div>
 
       <ReminderEditor value={reminders} onChange={setReminders} />
+
+      {areas.length > 0 && (
+        <Select
+          label={t("goals.fieldArea")}
+          value={lifeAreaId}
+          onChange={(e) => {
+            setLifeAreaId(e.target.value);
+            setGoalId("");
+          }}
+          options={[
+            { value: "", label: t("goals.noArea") },
+            ...areas.map((a) => ({ value: a.id, label: a.name })),
+          ]}
+        />
+      )}
+      {areaGoals.length > 0 && (
+        <Select
+          label={t("goals.pageTitle")}
+          value={goalId}
+          onChange={(e) => setGoalId(e.target.value)}
+          options={[
+            { value: "", label: t("goals.noArea") },
+            ...areaGoals.map((g) => ({ value: g.id, label: g.title })),
+          ]}
+        />
+      )}
 
       <div className="flex gap-2 pt-1">
         <Button type="button" variant="secondary" fullWidth onClick={onCancel}>
