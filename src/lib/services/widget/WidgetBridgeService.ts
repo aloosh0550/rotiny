@@ -8,22 +8,38 @@ import {
   dhikrCategoriesRepository,
   adhkarRepository,
   dhikrProgressRepository,
+  dailyEnergyRepository,
+  goalsRepository,
+  goalMilestonesRepository,
+  measurementsRepository,
 } from "@/lib/db/repositories";
 import { isSameDay } from "date-fns";
 import { isDueOnDate } from "@/lib/time/recurrence";
 import { todayKey } from "@/lib/time/dateUtils";
-import type { DhikrCategoryKind } from "@/lib/types";
+import { buildLocalPlan } from "@/lib/planner/localPlanner";
+import { computeGoalProgress } from "@/lib/goals/progress";
+import type { DhikrCategoryKind, EnergyLevel } from "@/lib/types";
 
 export interface WidgetSnapshot {
   date: string; // ISO
   generatedAt: string;
+  /** Schema version — native reads this and ignores fields it doesn't know. */
+  v: number;
   progress: { done: number; total: number };
   nextTask: { id: string; title: string } | null;
+  /** The deterministic planner's single "do this now" item (never AI). */
+  now: { id: string; type: string; title: string; reason: string; at: string | null } | null;
+  /** Today's self-reported energy, or null if not logged. */
+  energy: EnergyLevel | null;
   tasks: { id: string; title: string; done: boolean; time: string | null }[];
   appointments: { id: string; title: string; time: string }[];
   habits: { id: string; title: string; done: boolean; progress: string | null }[];
+  /** Top active goals with real derived progress (0..100). */
+  goals: { id: string; title: string; pct: number }[];
   adhkar: { category: DhikrCategoryKind; title: string; done: number; total: number } | null;
 }
+
+const SNAPSHOT_VERSION = 2;
 
 function hm(iso: string): string {
   const d = new Date(iso);
@@ -89,14 +105,68 @@ export async function buildSnapshot(): Promise<WidgetSnapshot> {
 
   const nextTask = todayTasks.find((t) => !t.done) ?? null;
 
+  // --- planner "الآن" + energy + top goals (Phase 4/7/9 data) -------------
+  const [energyRow, goals] = await Promise.all([
+    dailyEnergyRepository.getForDate(todayKey()),
+    goalsRepository.getAll(),
+  ]);
+  const energy: EnergyLevel | null = energyRow?.level ?? null;
+
+  let nowItem: WidgetSnapshot["now"] = null;
+  try {
+    const plan = buildLocalPlan({
+      now,
+      energy,
+      tasks,
+      appointments,
+      habits,
+      habitCompletions: completions,
+    });
+    if (plan.now) {
+      nowItem = {
+        id: plan.now.id,
+        type: plan.now.type,
+        title: plan.now.title,
+        reason: plan.now.reason,
+        at: plan.now.at,
+      };
+    }
+  } catch {
+    /* planner failure must never break the widget */
+  }
+
+  const activeGoals = goals
+    .filter((g) => g.status === "active")
+    .sort((a, b) => (a.deadline ?? "9999").localeCompare(b.deadline ?? "9999"))
+    .slice(0, 3);
+  const goalRows: WidgetSnapshot["goals"] = [];
+  for (const g of activeGoals) {
+    try {
+      const [milestones, direct] = await Promise.all([
+        goalMilestonesRepository.getForGoal(g.id),
+        measurementsRepository.getForRef("goal", g.id),
+      ]);
+      const linkedTasks = tasks.filter((t) => t.goalId === g.id);
+      const measuredTotal = direct.reduce((s, m) => s + m.value, 0);
+      const gp = computeGoalProgress(g, milestones, linkedTasks, measuredTotal);
+      goalRows.push({ id: g.id, title: g.title, pct: Math.round(gp.ratio * 100) });
+    } catch {
+      goalRows.push({ id: g.id, title: g.title, pct: 0 });
+    }
+  }
+
   return {
     date: now.toISOString(),
     generatedAt: now.toISOString(),
+    v: SNAPSHOT_VERSION,
     progress: { done, total },
     nextTask: nextTask ? { id: nextTask.id, title: nextTask.title } : null,
+    now: nowItem,
+    energy,
     tasks: todayTasks,
     appointments: todayAppts,
     habits: habitRows,
+    goals: goalRows,
     adhkar,
   };
 }
