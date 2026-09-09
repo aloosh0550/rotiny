@@ -59,6 +59,12 @@ async function nudgeSync(): Promise<void> {
   try {
     const { syncEngine } = await import("@/lib/sync/SyncEngine");
     await syncEngine.flush();
+    // Offline: register a Background Sync so the outbox drains on reconnect even if
+    // the app is backgrounded by then. No-op where the API is unavailable.
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      const { requestOutboxSync } = await import("@/lib/pwa/outboxSync");
+      await requestOutboxSync();
+    }
   } catch {
     /* ignore */
   }

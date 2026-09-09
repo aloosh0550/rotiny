@@ -15,7 +15,7 @@ Branch `redesign/routini-v2`. Plan: `IMPLEMENTATION_PLAN.md` (v3, cloud-first).
 | **8 · Reviews + Analytics + Achievements** | ✅ done | `reviews` + `achievements` cloud tables (RLS, realtime, synced) + Dexie v6. `src/lib/analytics/periods.ts` + **`computeReview`** (deterministic day/week/month metrics — tasks done/due, habit expected-vs-done via recurrence, adhkar days, measurements, per-area completion %, strongest/weakest area, delta vs previous period; 8 tests). `/reviews` (Daily/Weekly/Monthly tabs, no-pressure copy, suggestion). `useReview` computes + persists one review per period. `achievements/catalog.ts` + `refreshAchievements` (streak_7/30, exercise_20, reading_week, first_goal, great_week — recomputed from real data, sticky unlock). `/achievements` grid (locked/unlocked + progress). Wired into `/more`. Integration test: reviews + achievements round-trip. |
 | **9 · AI Assistant + Gemini (architecture-first)** | ✅ done | `ai_conversations` + `ai_memory` cloud tables (RLS, realtime, synced) + Dexie v7. **`AIProvider` abstraction** (`src/lib/ai/`): `GeminiProvider` holds **no key** — POSTs the turn + minimal context to a server proxy (`aiEndpoint()`, a Supabase Edge Function) with the user's JWT; `registry.getAIProvider()` returns `null` when AI is off / provider `none` / endpoint unconfigured → quiet fallback, rest of app unaffected. `AIUnavailableError` normalises every failure. Minimal PII-aware `buildAIContext` (today only: titles, energy, enabled memory — no ids/notes/history), sent only on a user turn and only when `shareContext` on. Deterministic `computeSuggestions` (overdue / energy / plan / streak / goal-deadline / all-done — **no AI, works offline**, 9 tests). `/assistant` chat page + suggestions. `/more/settings/ai` — enable, name, 5 personalities, memory on/off + view/disable/delete, context toggle, "what gets shared" + setup notice. New `ai` block in `UserSettings` (default **off**) with top-level backfill. Edge Function skeleton + README at `supabase/functions/ai-chat/` (not deployed). 18 AI unit tests + integration round-trip. Nav: assistant in Sidebar + `/more`. |
 | 9b · Notifications + interactive actions | ⬜ | (plan phase 9 — deferred behind AI) |
-| 10 · Widgets / PWA + Push | ⬜ | |
+| **10 · Widgets / PWA + Push** | 🟡 partial | **J3 PWA/SW done + verified**: `public/sw.js` v2 — precache every top-level route (incl. assistant/reviews/achievements/areas/goals), per-URL navigation cache, `/offline/` fallback, **Background Sync + Periodic Sync** flush the outbox on reconnect (`src/lib/pwa/outboxSync.ts` → `syncEngine.flush()`); `scripts/pwa-check.mjs` (`npm run pwa:check`) drives Chromium offline and asserts all 12 routes render + unknown→offline. **J2 widget snapshot done + verified**: `buildSnapshot()` += `v`, `now` (deterministic planner item+reason), `energy`, `goals` (real `computeGoalProgress`, ≤3 active) — one-way from the replica; existing widget Java `optString`/`optJSONArray` ignores new fields (no APK change). 4 `tests/widget/snapshot.test.ts`. **J1 native widget rendering** + **J4 FCM push** → `docs/PHASE_10_REMAINING.md` (blocked: no Android SDK/device; needs Firebase project). Migration `20260913000000_phase10_devices.sql` **created, NOT applied** (awaits approval; client sync wiring deferred until applied). |
 | 11 · AI Planning + Rescheduling + autonomy | ⬜ | builds on phase 9 provider |
 | 12 · Gemini eval + prompt tuning (free-tier) | ⬜ | no Anthropic; needs owner to deploy `ai-chat` + set `GEMINI_API_KEY` |
 | 13 · AI Assistant deepening (voice, richer memory) | ⬜ | |
@@ -25,9 +25,11 @@ Branch `redesign/routini-v2`. Plan: `IMPLEMENTATION_PLAN.md` (v3, cloud-first).
 
 ## Verification status (current)
 
-- `tsc` clean · `lint` clean · `vitest` **92 pass / 11 integration skipped in CI**
+- `tsc` clean · `lint` clean · `vitest` **96 pass / 11 integration skipped in CI**
 - `next build` (cloud + `build:local`) clean · `cap sync android` clean
 - Playwright QA (`build:local`): **36/36** screens, 360/393, RTL + dark, no overflow
+- **PWA offline** (`npm run pwa:check`): SW installs + controls, app-shell cache = 19 entries,
+  12/12 routes render offline, unknown route → `/offline/`
 - **Local Supabase integration** (`RUN_SUPABASE_INTEGRATION=1 npm run test:integration`): 11/11
   1. local create → Supabase + RLS hides it from another user
   2. another device's change → local replica via realtime
@@ -41,10 +43,13 @@ Branch `redesign/routini-v2`. Plan: `IMPLEMENTATION_PLAN.md` (v3, cloud-first).
 - **Hosted project** `qyrxtacuxojpdpujzjah`: migrations `20260906120000`, `20260906130000`,
   `20260907000000_phase4_daily` **applied** (owner-confirmed). RLS on, realtime reachable.
   `20260908000000_phase5` … `20260912000000_phase9_ai` **applied** (owner-confirmed, 2026-09-09).
-  All migrations now applied on Production. `ai_conversations` + `ai_memory` verified live
-  (tables, `owner all` RLS policies, `supabase_realtime` membership) via read-only checks.
+  `ai_conversations` + `ai_memory` verified live (tables, `owner all` RLS policies,
+  `supabase_realtime` membership) via read-only checks.
   Edge Function `ai-chat` **deployed** to Production (`GEMINI_API_KEY` set as a hosted secret;
   smoke test: OPTIONS 200, unauthenticated POST 401, GET 405).
+  **Pending: `20260913000000_phase10_devices.sql`** (Phase 10 J4 — `devices` table for push +
+  presence; additive, verified on the local stack; NOT applied; client sync wiring held
+  until it is).
 
 ## Not yet verified (needs a human)
 

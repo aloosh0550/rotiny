@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
+import { initPwaOutboxBridge, requestPeriodicOutboxSync } from "@/lib/pwa/outboxSync";
 
 export function ServiceWorkerManager() {
   const { show } = useToast();
@@ -60,8 +61,13 @@ export function ServiceWorkerManager() {
 
     void register();
 
+    // SW → client bridge: flush the offline outbox when Background Sync wakes us.
+    const teardownBridge = initPwaOutboxBridge();
+    void requestPeriodicOutboxSync();
+
     return () => {
       navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
+      teardownBridge();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

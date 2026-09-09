@@ -11,6 +11,7 @@
     "test:integration": "RUN_SUPABASE_INTEGRATION=1 vitest run tests/integration",
     "build:local": "NEXT_PUBLIC_SUPABASE_URL= NEXT_PUBLIC_SUPABASE_ANON_KEY= next build",
     "qa": "npm run build:local && node scripts/qa.mjs",
+    "pwa:check": "node scripts/pwa-check.mjs",
     "icons": "node scripts/generate-icons.mjs",
     "cap:sync": "next build && cap sync android",
     "android:apk": "npm run cap:sync && cd android && ./gradlew assembleDebug",
