@@ -120,12 +120,17 @@ export function useAssistant(): UseAssistant {
       } catch (e) {
         const reason = e instanceof AIUnavailableError ? e.reason : "server";
         setLastError(reason);
+        const en =
+          reason === "rate-limited"
+            ? "You've reached today's assistant limit — it'll be back tomorrow. The rest of the app keeps working."
+            : "I can't reach the assistant right now — everything else keeps working. Try again in a bit.";
+        const ar =
+          reason === "rate-limited"
+            ? "وصلت إلى حدّ المساعد لهذا اليوم — يعود غدًا. بقية التطبيق تعمل كالمعتاد."
+            : "لا أستطيع الوصول إلى المساعد الآن — بقية التطبيق تعمل كالمعتاد. جرّب بعد قليل.";
         const fallback: AiMessage = {
           role: "assistant",
-          content:
-            locale === "en"
-              ? "I can't reach the assistant right now — everything else keeps working. Try again in a bit."
-              : "لا أستطيع الوصول إلى المساعد الآن — بقية التطبيق تعمل كالمعتاد. جرّب بعد قليل.",
+          content: locale === "en" ? en : ar,
           ts: new Date().toISOString(),
         };
         setMessages((m) => [...m, fallback]);

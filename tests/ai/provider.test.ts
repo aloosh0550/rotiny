@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/config/env", () => ({
   aiEndpoint: () => "https://example.test/functions/v1/ai-chat",
+  aiFunctionUrl: (fn: string) => `https://example.test/functions/v1/${fn}`,
   isAiEndpointConfigured: () => true,
   isSupabaseConfigured: () => true,
   env: {},
@@ -11,7 +12,7 @@ import { GeminiProvider } from "@/lib/ai/geminiProvider";
 import { AIUnavailableError } from "@/lib/ai/errors";
 import { getAIProvider, isAssistantAvailable } from "@/lib/ai/registry";
 import type { AiSettings } from "@/lib/types";
-import type { AIChatRequest } from "@/lib/ai/types";
+import type { AIChatRequest, AIPlanRequest } from "@/lib/ai/types";
 
 const req: AIChatRequest = {
   messages: [{ role: "user", content: "رتب يومي", ts: "2026-09-07T09:00:00Z" }],
@@ -76,6 +77,13 @@ describe("GeminiProvider", () => {
     });
   });
 
+  it("maps 429 to a rate-limited error", async () => {
+    fetchMock.mockResolvedValue(new Response("{}", { status: 429 }));
+    await expect(provider.chat(req, { accessToken: null })).rejects.toMatchObject({
+      reason: "rate-limited",
+    });
+  });
+
   it("maps a network failure to a network error", async () => {
     fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
     await expect(provider.chat(req, { accessToken: null })).rejects.toBeInstanceOf(
@@ -106,6 +114,51 @@ describe("GeminiProvider", () => {
     );
     const res = await provider.chat(req, { accessToken: null });
     expect(res.memory).toEqual([{ kind: "preference", text: "يفضّل الرياضة صباحًا" }]);
+  });
+
+  describe("plan()", () => {
+    const planReq: AIPlanRequest = {
+      today: "2026-09-07",
+      energy: "good",
+      locale: "ar",
+      candidates: [
+        { refType: "task", refId: "a", title: "أ", bucket: "morning", durationMinutes: 30, reason: "r", score: 1 },
+        { refType: "task", refId: "b", title: "ب", bucket: "morning", durationMinutes: 30, reason: "r", score: 2 },
+      ],
+    };
+
+    it("hits the ai-plan endpoint and returns a validated order + reasons", async () => {
+      fetchMock.mockResolvedValue(
+        new Response(JSON.stringify({ order: ["b", "a"], reasons: { a: "ابدأ بها" } }), { status: 200 }),
+      );
+      const res = await provider.plan(planReq, { accessToken: "jwt" });
+      expect(fetchMock.mock.calls[0][0]).toBe("https://example.test/functions/v1/ai-plan");
+      expect(res.order).toEqual(["b", "a"]);
+      expect(res.reasons).toEqual({ a: "ابدأ بها" });
+      // never sends notes/deadlines/history
+      const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+      expect(Object.keys(body.candidates[0]).sort()).toEqual(
+        ["bucket", "durationMinutes", "reason", "refId", "refType", "title"].sort(),
+      );
+    });
+
+    it("rejects a response with no usable order", async () => {
+      fetchMock.mockResolvedValue(new Response(JSON.stringify({ reasons: {} }), { status: 200 }));
+      await expect(provider.plan(planReq, { accessToken: null })).rejects.toMatchObject({
+        reason: "server",
+      });
+    });
+
+    it("maps 429 / 401 the same way as chat", async () => {
+      fetchMock.mockResolvedValue(new Response("{}", { status: 429 }));
+      await expect(provider.plan(planReq, { accessToken: null })).rejects.toMatchObject({
+        reason: "rate-limited",
+      });
+      fetchMock.mockResolvedValue(new Response("{}", { status: 401 }));
+      await expect(provider.plan(planReq, { accessToken: null })).rejects.toMatchObject({
+        reason: "unauthorized",
+      });
+    });
   });
 });
 

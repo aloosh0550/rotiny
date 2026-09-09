@@ -17,7 +17,7 @@ Branch `redesign/routini-v2`. Plan: `IMPLEMENTATION_PLAN.md` (v3, cloud-first).
 | 9b · Notifications + interactive actions | ⬜ | (plan phase 9 — deferred behind AI) |
 | **10 · Widgets / PWA + Push** | 🟡 partial | **J3 PWA/SW done + verified**: `public/sw.js` v2 — precache every top-level route (incl. assistant/reviews/achievements/areas/goals), per-URL navigation cache, `/offline/` fallback, **Background Sync + Periodic Sync** flush the outbox on reconnect (`src/lib/pwa/outboxSync.ts` → `syncEngine.flush()`); `scripts/pwa-check.mjs` (`npm run pwa:check`) drives Chromium offline and asserts all 12 routes render + unknown→offline. **J2 widget snapshot done + verified**: `buildSnapshot()` += `v`, `now` (deterministic planner item+reason), `energy`, `goals` (real `computeGoalProgress`, ≤3 active) — one-way from the replica; existing widget Java `optString`/`optJSONArray` ignores new fields (no APK change). 4 `tests/widget/snapshot.test.ts`. **J1 native widget rendering** + **J4 FCM push** → `docs/PHASE_10_REMAINING.md` (blocked: no Android SDK/device; needs Firebase project). Migration `20260913000000_phase10_devices.sql` **created, NOT applied** (awaits approval; client sync wiring deferred until applied). |
 | **11 · AI Planning + Smart Rescheduling + Autonomy** | ✅ done (see `docs/PHASE_11.md`) | `AiSettings.autonomy` (conservative/balanced/automatic) + settings selector. **`src/lib/ai/`**: `actions.ts` (5 Zod action kinds, no delete, appt-mutation forbidden), `policy.ts` (`decideAction → auto/confirm/forbidden` per autonomy; hard invariants), `pipeline.ts` (`raw → Zod+guard → policy → repos → log`; **AI never touches DB**; `processActions`/`confirmAction`/`rejectAction`). **`src/lib/planner/`**: `reschedule.ts` (deterministic — move past-window items, defer overflow tasks lowest-priority-first; no delete/no appt; loop guard = 6/day + per-item from history; Arabic reasons), `aiPlan.ts` (`computePlan` — always `buildLocalPlan`, AI re-orders/rephrases only, silent fallback, never on render). `buildLocalPlan` excludes tasks `plannedFor` a later day. `AIProvider.plan?()` + `GeminiProvider.plan()` + `ai-plan` Edge Function skeleton. `RescheduleSheet` replaces `LateMode` on `/plan`; regenerate button uses AI when available. `AiActionLog` + Dexie v8 `aiActions` (local-first). **29 new tests** (policy/pipeline/reschedule/aiPlan/localPlanner). Migration `20260914000000_phase11_ai_actions.sql` **created + local-verified, NOT applied**. |
-| 12 · Gemini eval + prompt tuning (free-tier) | ⬜ | no Anthropic; needs owner to deploy `ai-chat` + set `GEMINI_API_KEY` |
+| **12 · Gemini eval + prompt tuning** | ✅ done (see `docs/PHASE_12.md`) | **Model fix**: `gemini-1.5-flash` was **retired** (real calls 404 → assistant never answered) → **`gemini-flash-latest`** stable alias, overridable via `GEMINI_MODEL` secret. Shared `supabase/functions/_shared/gemini.ts` — timeout, `{error,code}` mapping (rate_limited/model/safety/server), safety/`finishReason` handling, lenient JSON parse. `ai-chat` prepends **immutable server-side rules** (defence vs a tampered client); memory extraction = separate strict-JSON call at temp 0. `ai-plan` deployed (JSON mode + server-side id re-validation). Prompts tuned (no-invention, concrete "لماذا الآن", never-execute). Client: 429→`rate-limited` + calm copy; "what gets shared" panel states the free-tier training caveat. `scripts/test-ai-function.mjs` extended (both functions, secret-free, 10/10). **`ai-chat` + `ai-plan` deployed to Production** (PAT, no key printed, no new key, no DB change). Real Gemini round-trip = owner-verified (needs a signed-in session). +7 tests. |
 | 13 · AI Assistant deepening (voice, richer memory) | ⬜ | |
 | 14 · Watch + Health + Location + Voice | ⬜ | |
 | 15 · Security + Performance + Testing | ⬜ | |
@@ -25,9 +25,11 @@ Branch `redesign/routini-v2`. Plan: `IMPLEMENTATION_PLAN.md` (v3, cloud-first).
 
 ## Verification status (current)
 
-- `tsc` clean · `lint` clean · `vitest` **126 pass / 11 integration skipped in CI**
+- `tsc` clean · `lint` clean · `vitest` **131 pass / 11 integration skipped in CI**
 - `next build` (cloud + `build:local`) clean · `cap sync android` clean
 - Playwright QA (`build:local`): **36/36** screens, 360/393, RTL + dark, no overflow
+- **AI functions** (`node scripts/test-ai-function.mjs`, secret-free): ai-chat + ai-plan —
+  OPTIONS 200 · GET 405 · POST-no-session 401 (key present) · no key in any body — 10/10
 - **PWA offline** (`npm run pwa:check`): SW installs + controls, app-shell cache = 19 entries,
   12/12 routes render offline, unknown route → `/offline/`
 - **Local Supabase integration** (`RUN_SUPABASE_INTEGRATION=1 npm run test:integration`): 11/11
@@ -45,8 +47,9 @@ Branch `redesign/routini-v2`. Plan: `IMPLEMENTATION_PLAN.md` (v3, cloud-first).
   `20260908000000_phase5` … `20260912000000_phase9_ai` **applied** (owner-confirmed, 2026-09-09).
   `ai_conversations` + `ai_memory` verified live (tables, `owner all` RLS policies,
   `supabase_realtime` membership) via read-only checks.
-  Edge Function `ai-chat` **deployed** to Production (`GEMINI_API_KEY` set as a hosted secret;
-  smoke test: OPTIONS 200, unauthenticated POST 401, GET 405).
+  Edge Functions `ai-chat` + `ai-plan` **deployed** to Production (`GEMINI_API_KEY` shared
+  hosted secret; model `gemini-flash-latest`, overridable via `GEMINI_MODEL`; smoke test
+  10/10 secret-free). Real Gemini round-trip: owner-verified (needs a signed-in session).
   **Pending (both additive, local-verified, NOT applied; client sync wiring held until applied):**
   `20260913000000_phase10_devices.sql` (Phase 10 J4 — `devices` for push + presence),
   `20260914000000_phase11_ai_actions.sql` (Phase 11 — `ai_actions` audit log).

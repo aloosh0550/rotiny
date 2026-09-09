@@ -4,7 +4,13 @@
  * shows a calm fallback; the rest of the app is never affected.
  */
 export class AIUnavailableError extends Error {
-  readonly reason: "network" | "timeout" | "server" | "unconfigured" | "unauthorized";
+  readonly reason:
+    | "network"
+    | "timeout"
+    | "server"
+    | "unconfigured"
+    | "unauthorized"
+    | "rate-limited";
 
   constructor(
     reason: AIUnavailableError["reason"],
