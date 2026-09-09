@@ -22,7 +22,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { IconTile, type TileColor } from "@/components/ui/IconTile";
 import { SubpageHeader } from "@/components/more/SubpageHeader";
-import { LateMode } from "@/components/plan/LateMode";
+import { RescheduleSheet } from "@/components/plan/RescheduleSheet";
 import { useTranslation } from "@/lib/i18n/I18nProvider";
 import { useTasks } from "@/lib/hooks/useTasks";
 import { useAppointments } from "@/lib/hooks/useAppointments";
@@ -30,6 +30,8 @@ import { useHabits, useCompletionsForDate } from "@/lib/hooks/useHabits";
 import { useNow } from "@/lib/hooks/useNow";
 import { useDailyPlan } from "@/lib/hooks/useDailyPlan";
 import { useTodayEnergy } from "@/lib/hooks/useLocalPlan";
+import { useSettings } from "@/lib/hooks/useSettings";
+import { useAuth } from "@/lib/auth/AuthProvider";
 import {
   tasksRepository,
   habitCompletionsRepository,
@@ -37,6 +39,8 @@ import {
   dailyEnergyRepository,
 } from "@/lib/db/repositories";
 import { onEntityMutated } from "@/lib/services/effects/appEffects";
+import { getAIProvider } from "@/lib/ai/registry";
+import { computePlan } from "@/lib/planner/aiPlan";
 import { todayKey, formatTime } from "@/lib/time/dateUtils";
 import { ROUTES } from "@/lib/constants/routes";
 import type { DailyPlanBucket, DailyPlanItem, EnergyLevel } from "@/lib/types";
@@ -68,10 +72,56 @@ export default function DailyPlanPage() {
   const appointments = useAppointments();
   const habits = useHabits();
   const completions = useCompletionsForDate(todayKey());
+  const settings = useSettings();
+  const { session } = useAuth();
   const now = useNow(60_000);
   const history = useLiveQuery(() => dailyPlansRepository.getRecent(14), []);
   const [showHistory, setShowHistory] = useState(false);
   const [late, setLate] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+
+  const aiProvider = settings ? getAIProvider(settings.ai) : null;
+  const canSmartPlan = !!aiProvider?.plan;
+
+  /**
+   * Explicit user action only (never on render). Uses the AI ranker when it's
+   * available + enabled, otherwise the deterministic planner. Falls back
+   * silently on any AI failure.
+   */
+  async function regenerateSmart() {
+    if (!tasks || !appointments || !habits || !completions) return;
+    if (!canSmartPlan) {
+      await regenerate();
+      return;
+    }
+    setRegenerating(true);
+    try {
+      const result = await computePlan(
+        {
+          now: new Date(),
+          energy: energy ?? null,
+          tasks,
+          appointments,
+          habits,
+          habitCompletions: completions,
+        },
+        {
+          ai: settings!.ai,
+          provider: aiProvider,
+          accessToken: session?.access_token ?? null,
+          locale,
+        },
+      );
+      await dailyPlansRepository.upsertForDate(todayKey(), {
+        energy: energy ?? null,
+        generatedBy: result.source === "ai" ? "ai" : "local",
+        items: result.items,
+        regeneratedAt: new Date().toISOString(),
+      });
+    } finally {
+      setRegenerating(false);
+    }
+  }
 
   const loading =
     plan === undefined || !tasks || !appointments || !habits || !completions;
@@ -189,8 +239,13 @@ export default function DailyPlanPage() {
               </button>
             ))}
           </div>
-          <Button size="sm" variant="secondary" onClick={() => void regenerate()}>
-            <RefreshCw className="size-3.5" />
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={regenerating}
+            onClick={() => void regenerateSmart()}
+          >
+            <RefreshCw className={`size-3.5 ${regenerating ? "animate-spin" : ""}`} />
             {t("plan.regenerate")}
           </Button>
           <Button size="sm" variant="ghost" onClick={() => setLate(true)}>
@@ -212,9 +267,8 @@ export default function DailyPlanPage() {
             <ProgressBar value={done / total} tone={done === total ? "success" : "accent"} />
             {plan?.regeneratedAt && (
               <span className="text-xs text-text-tertiary">
-                {t("plan.regeneratedAt", {
-                  time: formatTime(plan.regeneratedAt, locale),
-                })}
+                {t("plan.regeneratedAt", { time: formatTime(plan.regeneratedAt, locale) })}
+                {plan.generatedBy === "ai" && ` · ${t("plan.rescheduleAiUpgraded")}`}
               </span>
             )}
           </Card>
@@ -339,7 +393,7 @@ export default function DailyPlanPage() {
         </div>
       </div>
 
-      <LateMode open={late} onClose={() => setLate(false)} />
+      <RescheduleSheet open={late} onClose={() => setLate(false)} />
     </div>
   );
 }

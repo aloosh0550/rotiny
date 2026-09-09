@@ -154,4 +154,21 @@ describe("buildLocalPlan", () => {
     const ids = plan.remaining.map((i) => i.id);
     expect(ids.indexOf("early")).toBeLessThan(ids.indexOf("late"));
   });
+
+  it("a task planned for a later day is excluded from today's plan", () => {
+    const plan = buildLocalPlan({
+      ...base(now), // now = 2026-06-10 …
+      tasks: [
+        task({ id: "today", plannedFor: "2026-06-10" }),
+        task({ id: "tomorrow", plannedFor: "2026-06-11" }),
+        task({ id: "yesterday", plannedFor: "2026-06-09" }), // stays — it's still pending
+      ],
+      appointments: [],
+      habits: [],
+    });
+    const ids = plan.remaining.map((i) => i.id);
+    expect(ids).toContain("today");
+    expect(ids).toContain("yesterday");
+    expect(ids).not.toContain("tomorrow");
+  });
 });

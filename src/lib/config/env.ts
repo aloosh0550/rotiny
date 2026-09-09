@@ -21,11 +21,19 @@ export function isSupabaseConfigured(): boolean {
   return SUPABASE_URL.length > 0 && SUPABASE_ANON_KEY.length > 0;
 }
 
-/** The resolved AI proxy endpoint, or "" when neither it nor Supabase is set. */
-export function aiEndpoint(): string {
-  if (AI_ENDPOINT) return AI_ENDPOINT;
-  if (SUPABASE_URL) return `${SUPABASE_URL.replace(/\/$/, "")}/functions/v1/ai-chat`;
+export type AiFunctionName = "ai-chat" | "ai-plan";
+
+/** The URL of a server-side AI Edge Function, or "" when it can't be resolved. */
+export function aiFunctionUrl(fn: AiFunctionName): string {
+  // NEXT_PUBLIC_AI_ENDPOINT, when set, overrides the ai-chat URL only.
+  if (fn === "ai-chat" && AI_ENDPOINT) return AI_ENDPOINT;
+  if (SUPABASE_URL) return `${SUPABASE_URL.replace(/\/$/, "")}/functions/v1/${fn}`;
   return "";
+}
+
+/** The resolved AI proxy (chat) endpoint, or "" when neither it nor Supabase is set. */
+export function aiEndpoint(): string {
+  return aiFunctionUrl("ai-chat");
 }
 
 /** True when an AI proxy endpoint can be resolved. Does not mean AI is enabled. */

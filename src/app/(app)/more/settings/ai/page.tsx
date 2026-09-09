@@ -15,7 +15,7 @@ import { settingsRepository } from "@/lib/db/repositories";
 import { isAiEndpointConfigured } from "@/lib/config/env";
 import { ROUTES } from "@/lib/constants/routes";
 import type { TranslationKey } from "@/lib/i18n/paths";
-import type { AiPersonality } from "@/lib/types";
+import type { AiAutonomy, AiPersonality } from "@/lib/types";
 
 const PERSONALITIES: { value: AiPersonality; labelKey: TranslationKey }[] = [
   { value: "supportive", labelKey: "assistantSettings.personalitySupportive" },
@@ -23,6 +23,24 @@ const PERSONALITIES: { value: AiPersonality; labelKey: TranslationKey }[] = [
   { value: "concise", labelKey: "assistantSettings.personalityConcise" },
   { value: "playful", labelKey: "assistantSettings.personalityPlayful" },
   { value: "analytical", labelKey: "assistantSettings.personalityAnalytical" },
+];
+
+const AUTONOMY: { value: AiAutonomy; labelKey: TranslationKey; hintKey: TranslationKey }[] = [
+  {
+    value: "conservative",
+    labelKey: "assistantSettings.autonomyConservative",
+    hintKey: "assistantSettings.autonomyConservativeHint",
+  },
+  {
+    value: "balanced",
+    labelKey: "assistantSettings.autonomyBalanced",
+    hintKey: "assistantSettings.autonomyBalancedHint",
+  },
+  {
+    value: "automatic",
+    labelKey: "assistantSettings.autonomyAutomatic",
+    hintKey: "assistantSettings.autonomyAutomaticHint",
+  },
 ];
 
 export default function AiSettingsPage() {
@@ -60,6 +78,31 @@ export default function AiSettingsPage() {
             </div>
             <Switch checked={ai.enabled} onCheckedChange={(v) => patch({ enabled: v })} />
           </Card>
+
+          {/* Autonomy governs the deterministic planner + rescheduler too, so it
+              stays visible even when the AI assistant is off. */}
+          <section className="flex flex-col gap-2">
+            <div>
+              <h3 className="text-sm font-semibold text-text-secondary">
+                {t("assistantSettings.autonomy")}
+              </h3>
+              <p className="text-xs text-text-tertiary">{t("assistantSettings.autonomyHint")}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {AUTONOMY.map((a) => (
+                <Chip
+                  key={a.value}
+                  selected={ai.autonomy === a.value}
+                  onClick={() => patch({ autonomy: a.value })}
+                >
+                  {t(a.labelKey)}
+                </Chip>
+              ))}
+            </div>
+            <p className="px-1 text-xs text-text-tertiary">
+              {t(AUTONOMY.find((a) => a.value === ai.autonomy)!.hintKey)}
+            </p>
+          </section>
 
           {ai.enabled && (
             <>

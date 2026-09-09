@@ -43,9 +43,42 @@ export interface AIChatResponse {
   memory?: { kind: "preference" | "pattern" | "fact"; text: string }[];
 }
 
+/* ----------------------------------------------------------- planning ----- */
+
+/**
+ * One candidate the deterministic planner produced. The AI may only re-order
+ * these and (optionally) rephrase the `reason` — it can't invent items, change
+ * durations, or touch anything else.
+ */
+export interface AIPlanCandidate {
+  refType: "task" | "appointment" | "habit";
+  refId: string;
+  title: string;
+  bucket: string;
+  durationMinutes: number;
+  reason: string;
+  score: number;
+}
+
+export interface AIPlanRequest {
+  today: string;
+  energy: string | null;
+  candidates: AIPlanCandidate[];
+  locale: "ar" | "en";
+}
+
+export interface AIPlanResponse {
+  /** refIds in the assistant's preferred order (a permutation/subset of the input) */
+  order: string[];
+  /** optional short reason rewrites, keyed by refId — wording only */
+  reasons?: Record<string, string>;
+}
+
 export interface AIProvider {
   readonly id: string;
   /** endpoint reachable + provider selected. Not a guarantee the call succeeds. */
   isConfigured(): boolean;
   chat(req: AIChatRequest, opts: { accessToken: string | null }): Promise<AIChatResponse>;
+  /** Optional — a provider without planning support simply omits this. */
+  plan?(req: AIPlanRequest, opts: { accessToken: string | null }): Promise<AIPlanResponse>;
 }

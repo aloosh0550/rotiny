@@ -330,3 +330,31 @@ export interface AiMemory {
   confidence?: number | null;
   sync: SyncMeta;
 }
+
+/* ----------------------------------------------------------------- Phase 11 -- */
+
+export type AiActionStatus = "proposed" | "applied" | "rejected" | "failed";
+export type AiActionSource = "planner" | "reschedule" | "assistant";
+
+/**
+ * The audit log of every action the planner/assistant proposed or applied.
+ * Local-first (works offline); syncs to the cloud once
+ * `20260914000000_phase11_ai_actions.sql` is applied and the table is wired into
+ * `SYNCED_TABLES`. Nothing here ever deletes user data — see `src/lib/ai/actions.ts`.
+ */
+export interface AiActionLog {
+  id: ID;
+  /** an `AiActionKind` (kept as string so an old client can still read a new kind) */
+  kind: string;
+  /** the action's parameters (everything except `kind`/`reason`) */
+  payload: Record<string, unknown>;
+  /** the deterministic, user-facing explanation */
+  reason: string;
+  status: AiActionStatus;
+  /** the autonomy level in force when it was decided */
+  autonomyAtTime: string;
+  source: AiActionSource;
+  appliedAt?: string | null;
+  error?: string | null;
+  sync: SyncMeta;
+}

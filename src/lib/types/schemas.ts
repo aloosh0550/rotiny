@@ -264,6 +264,19 @@ export const aiMemorySchema = z.object({
   sync: syncMetaSchema,
 });
 
+export const aiActionLogSchema = z.object({
+  id: idSchema,
+  kind: z.string(),
+  payload: z.record(z.string(), z.unknown()),
+  reason: z.string(),
+  status: z.enum(["proposed", "applied", "rejected", "failed"]),
+  autonomyAtTime: z.string(),
+  source: z.enum(["planner", "reschedule", "assistant"]),
+  appliedAt: z.string().nullable().optional(),
+  error: z.string().nullable().optional(),
+  sync: syncMetaSchema,
+});
+
 // Settings shapes evolve version-to-version; keep the backup schema lenient so an
 // older/newer export still imports. `settingsRepository.migrateSettingsShape` fills gaps.
 const notificationPreferencesSchema = z.looseObject({ enabled: z.boolean() });
@@ -287,7 +300,7 @@ export const userSettingsSchema = z.looseObject({
 
 export const syncQueueEntrySchema = z.object({
   id: idSchema,
-  entityType: z.enum(["appointment", "task", "habit", "dhikr", "settings", "taskCategory", "dailyPlan", "dailyEnergy", "measurement", "lifeArea", "goal", "goalMilestone", "review", "achievement", "aiConversation", "aiMemory"]),
+  entityType: z.enum(["appointment", "task", "habit", "dhikr", "settings", "taskCategory", "dailyPlan", "dailyEnergy", "measurement", "lifeArea", "goal", "goalMilestone", "review", "achievement", "aiConversation", "aiMemory", "aiAction"]),
   entityId: idSchema,
   operation: z.enum(["create", "update", "delete"]),
   payload: z.unknown(),
@@ -318,6 +331,7 @@ export const backupDataSchema = z.object({
     achievements: z.array(achievementSchema).optional(),
     aiConversations: z.array(aiConversationSchema).optional(),
     aiMemory: z.array(aiMemorySchema).optional(),
+    aiActions: z.array(aiActionLogSchema).optional(),
     settings: z.array(userSettingsSchema),
     syncQueue: z.array(syncQueueEntrySchema),
   }),
@@ -347,6 +361,7 @@ export interface BackupData {
     achievements?: import("./models").Achievement[];
     aiConversations?: import("./models").AiConversation[];
     aiMemory?: import("./models").AiMemory[];
+    aiActions?: import("./models").AiActionLog[];
     settings: import("./settings").UserSettings[];
     syncQueue: import("./settings").SyncQueueEntry[];
   };
