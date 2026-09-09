@@ -40,8 +40,11 @@ Branch `redesign/routini-v2`. Plan: `IMPLEMENTATION_PLAN.md` (v3, cloud-first).
   6. first sign-in → uploads pre-existing local rows, id-preserving, non-destructive
 - **Hosted project** `qyrxtacuxojpdpujzjah`: migrations `20260906120000`, `20260906130000`,
   `20260907000000_phase4_daily` **applied** (owner-confirmed). RLS on, realtime reachable.
-  `20260908000000_phase5` … `20260911000000_phase8_reviews` **applied** (owner-confirmed).
-  **Pending: apply `20260912000000_phase9_ai.sql`** (additive, verified on the local stack).
+  `20260908000000_phase5` … `20260912000000_phase9_ai` **applied** (owner-confirmed, 2026-09-09).
+  All migrations now applied on Production. `ai_conversations` + `ai_memory` verified live
+  (tables, `owner all` RLS policies, `supabase_realtime` membership) via read-only checks.
+  Edge Function `ai-chat` **deployed** to Production (`GEMINI_API_KEY` set as a hosted secret;
+  smoke test: OPTIONS 200, unauthenticated POST 401, GET 405).
 
 ## Not yet verified (needs a human)
 
