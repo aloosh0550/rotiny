@@ -318,6 +318,60 @@ d("SyncEngine ↔ Supabase", () => {
     expect(bMem.data).toHaveLength(0);
   }, 20_000);
 
+  it("ai_actions (Phase 15 cloud-sync wiring) round-trips to the cloud and RLS isolates it", async () => {
+    const { aiActionsRepository } = await import("@/lib/db/repositories");
+    const log = await aiActionsRepository.log({
+      kind: "deferTaskToTomorrow",
+      payload: { taskId: crypto.randomUUID() },
+      reason: "لا يتّسع الوقت اليوم",
+      status: "applied",
+      autonomyAtTime: "automatic",
+      source: "reschedule",
+    });
+    await syncEngine.flush();
+
+    const onServer = await admin
+      .from("ai_actions")
+      .select("kind, reason, status, source, autonomy_at_time, user_id")
+      .eq("id", log.id)
+      .single();
+    expect(onServer.error).toBeNull();
+    expect(onServer.data!.kind).toBe("deferTaskToTomorrow");
+    expect(onServer.data!.status).toBe("applied");
+    expect(onServer.data!.source).toBe("reschedule");
+    expect(onServer.data!.user_id).toBe(userA.id);
+
+    // status transition (proposed → applied via confirmAction) also syncs
+    const proposed = await aiActionsRepository.log({
+      kind: "lowerTaskPriority",
+      payload: { taskId: crypto.randomUUID() },
+      reason: "أقل إلحاحًا",
+      status: "proposed",
+      autonomyAtTime: "conservative",
+      source: "assistant",
+    });
+    await syncEngine.flush();
+    await aiActionsRepository.setStatus(proposed.id, "applied");
+    await syncEngine.flush();
+    const updated = await admin.from("ai_actions").select("status").eq("id", proposed.id).single();
+    expect(updated.data?.status).toBe("applied");
+
+    // RLS: user B cannot see user A's action log
+    const bSees = await bClient.from("ai_actions").select("id").eq("id", log.id);
+    expect(bSees.data).toHaveLength(0);
+    // and user B cannot forge an insert stamped with user A's id
+    const forged = await bClient.from("ai_actions").insert({
+      id: crypto.randomUUID(),
+      user_id: userA.id,
+      kind: "deferTaskToTomorrow",
+      reason: "محاولة انتحال",
+      status: "proposed",
+      autonomy_at_time: "automatic",
+      source: "assistant",
+    });
+    expect(forged.error).toBeTruthy();
+  }, 20_000);
+
   it("settings changes sync to profiles.settings", async () => {
     const { settingsRepository } = await import("@/lib/db/repositories");
     await settingsRepository.update({ theme: "light", onboardingCompleted: true });

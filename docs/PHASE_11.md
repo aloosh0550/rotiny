@@ -60,6 +60,26 @@ every path here has a deterministic, offline fallback and the AI only ever
 ### Action log
 - `AiActionLog` model + Dexie v8 store `aiActions` + `aiActionsRepository`
   (`log`, `setStatus`, `getPending`, `getRecent`). **Local-first** — works offline.
+- **Cloud-sync wiring (added in the closure audit, 2026-09-13)**: `aiActionsRepository` now
+  passes `"aiActions"` as `entityType` to `makeSyncedRepository`, so every mutation enqueues.
+  `setStatus` was fixed to route through the repository's own `update()` instead of a raw
+  `db.aiActions.put()` — the old code bypassed `enqueue()` entirely, so a "proposed" →
+  "applied"/"rejected" transition never left the device. `ai_actions` was added to
+  `SYNCED_TABLES`/`DEXIE_TABLE`; `CloudStore.pull/getOne` were hardened to degrade
+  gracefully (return empty/null instead of throwing) when a table in `SYNCED_TABLES` isn't
+  on the server yet, so shipping this ahead of the migration doesn't break sync for other
+  tables via the REST path. `push/remove` still throw on a missing table so an outbox
+  mutation is retried, never silently dropped. Covered by a new integration test (cloud
+  round-trip + status-transition sync + RLS isolation + forged-insert rejection) — passed
+  15/15 on a clean local Supabase stack — plus 6 new `CloudStore` unit tests.
+  **Empirically proven this session**: a Realtime channel with a `postgres_changes` binding
+  to a table that doesn't exist yet silently stops delivering events for every *other* table
+  bound in the same channel (`SUBSCRIBED`, zero errors, but nothing fires). Because
+  `cloudStore.subscribe()` binds one channel per user covering the *entire* `SYNCED_TABLES`
+  array, this code is committed to `redesign/routini-v2` only and deliberately **not merged
+  to `main`** (which auto-deploys to Production) until the migration below is applied —
+  merging first would silently break realtime sync for every entity, for every signed-in
+  user, in Production.
 
 ## Tests (all green)
 
@@ -74,13 +94,15 @@ every path here has a deterministic, offline fallback and the AI only ever
 Full run: **126 pass / 11 integration skipped**. `tsc` + `lint` clean. `next build`
 (cloud + local) clean. QA 36/36, no overflow. `npm run pwa:check` passes.
 
-## Pending migration (NOT applied)
+## Pending migration (NOT applied to Production — awaiting explicit user approval)
 
 `supabase/migrations/20260914000000_phase11_ai_actions.sql` — `ai_actions` table
 (cloud audit log; RLS "owner all", trigger, indexes, 2 CHECKs, FK CASCADE, realtime).
-**Verified on the local stack.** Client keeps `ai_actions` local-only until it is applied
-and added to `SYNCED_TABLES` (same pattern as Phase 10 `devices`, to avoid a realtime
-channel binding to a table that isn't there yet).
+**Verified on the local stack, code-complete and tested (see above).** Confirmed still
+absent on Production via a read-only schema query (2026-09-13). Applying it is the only
+remaining step to light up cloud sync for `ai_actions` — the client code already handles
+both states (present/absent) safely, so this migration can be applied at any time without
+a further code change, but `main` should only be merged in the same step (see above).
 
 ## External setup (optional — for the AI *upgrade* only)
 

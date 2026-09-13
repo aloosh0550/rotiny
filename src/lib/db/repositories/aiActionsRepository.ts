@@ -1,12 +1,14 @@
 import { db } from "@/lib/db/schema";
 import type { AiActionLog, AiActionSource, AiActionStatus } from "@/lib/types";
-import { createSyncMeta, touchSyncMeta } from "@/lib/utils/sync";
+import { createSyncMeta } from "@/lib/utils/sync";
 import { generateId } from "@/lib/utils/id";
 import { makeSyncedRepository } from "./helpers";
 
-// No entityType yet → local-first (nothing enqueued). Wire the "aiActions" tag +
-// SYNCED_TABLES entry once 20260914000000_phase11_ai_actions.sql is applied.
-const base = makeSyncedRepository<AiActionLog>(db.aiActions);
+// Cloud-synced once 20260914000000_phase11_ai_actions.sql is applied on the
+// project (it's wired into SYNCED_TABLES already). Until then, CloudStore's
+// missing-table guard makes every push/pull a harmless no-op/retry — the log
+// keeps working fully offline-first either way.
+const base = makeSyncedRepository<AiActionLog>(db.aiActions, "aiActions");
 
 export const aiActionsRepository = {
   ...base,
@@ -37,12 +39,13 @@ export const aiActionsRepository = {
   async setStatus(id: string, status: AiActionStatus, error?: string | null): Promise<void> {
     const existing = await db.aiActions.get(id);
     if (!existing) return;
-    await db.aiActions.put({
-      ...existing,
+    // Route through base.update() (not a raw table.put()) so this transition is
+    // enqueued + pushed like any other mutation — a status change (e.g. a
+    // proposed action the user confirms) must sync, not just the initial log().
+    await base.update(id, {
       status,
       appliedAt: status === "applied" ? new Date().toISOString() : existing.appliedAt ?? null,
       error: error ?? existing.error ?? null,
-      sync: touchSyncMeta(existing.sync),
     });
   },
 
