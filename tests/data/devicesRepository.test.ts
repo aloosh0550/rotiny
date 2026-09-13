@@ -59,13 +59,17 @@ describe("devicesRepository", () => {
     expect(fetched?.id).toBe(registered.id);
   });
 
-  it("is local-only: creating/updating never enqueues to the sync outbox", async () => {
+  it("the write path is still local-only: creating/updating never enqueues to the sync outbox", async () => {
+    // devicesRepository deliberately omits `entityType` — the migration
+    // (20260913000000_phase10_devices.sql) isn't applied on Production yet,
+    // so an enqueued push would throw on every flush tick. This is the one
+    // gate left; see docs/PHASE_10_DEVICES_PLAN.md.
     await devicesRepository.registerThisDevice();
     await devicesRepository.registerThisDevice();
     expect(await db.syncQueue.count()).toBe(0);
   });
 
-  it("is NOT yet a synced table — devices must stay out of SYNCED_TABLES until its Production migration is applied", () => {
-    expect(SYNCED_TABLES as readonly string[]).not.toContain("devices");
+  it("IS listed in SYNCED_TABLES — pull + realtime are ready so the table lights up automatically once its migration lands, with no further code change", () => {
+    expect(SYNCED_TABLES as readonly string[]).toContain("devices");
   });
 });

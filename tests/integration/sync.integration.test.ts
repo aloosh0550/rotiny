@@ -372,6 +372,58 @@ d("SyncEngine ↔ Supabase", () => {
     expect(forged.error).toBeTruthy();
   }, 20_000);
 
+  it("devices migration is compatible with the client's cloud plumbing (RLS + rowMapping), even though devicesRepository itself stays write-disabled until this is approved for Production", async () => {
+    // devicesRepository deliberately passes no `entityType` (see
+    // docs/PHASE_10_DEVICES_PLAN.md), so it never enqueues. This test calls
+    // `cloudStore` directly — the same code path CloudStore.push/pull/RLS use
+    // for every other entity — to prove the migration's schema (column names,
+    // RLS policy, trigger) is genuinely compatible with the client today, so
+    // flipping devicesRepository's `entityType` on is the only change needed
+    // once the migration is approved and applied on Production.
+    const { cloudStore } = await import("@/lib/data/CloudStore");
+    const { createSyncMeta } = await import("@/lib/utils/sync");
+
+    const device = {
+      id: crypto.randomUUID(),
+      kind: "web" as const,
+      name: "متصفح الاختبار",
+      platform: "web" as const,
+      pushToken: null,
+      pushProvider: "none" as const,
+      lastSeenAt: new Date().toISOString(),
+      sync: createSyncMeta(),
+    };
+    const pushed = await cloudStore.push("devices" as never, device as never, userA.id);
+    expect(pushed?.id).toBe(device.id);
+
+    const onServer = await admin
+      .from("devices")
+      .select("name, platform, push_provider, user_id")
+      .eq("id", device.id)
+      .single();
+    expect(onServer.error).toBeNull();
+    expect(onServer.data!.name).toBe("متصفح الاختبار");
+    expect(onServer.data!.platform).toBe("web");
+    expect(onServer.data!.push_provider).toBe("none");
+    expect(onServer.data!.user_id).toBe(userA.id);
+
+    const fetched = await cloudStore.getOne("devices" as never, device.id);
+    expect(fetched?.id).toBe(device.id);
+
+    // RLS: user B cannot see user A's device, nor forge one under A's id
+    const bSees = await bClient.from("devices").select("id").eq("id", device.id);
+    expect(bSees.data).toHaveLength(0);
+    const forged = await bClient.from("devices").insert({
+      id: crypto.randomUUID(),
+      user_id: userA.id,
+      kind: "web",
+      name: "جهاز منتحل",
+      platform: "web",
+      push_provider: "none",
+    });
+    expect(forged.error).toBeTruthy();
+  }, 20_000);
+
   it("settings changes sync to profiles.settings", async () => {
     const { settingsRepository } = await import("@/lib/db/repositories");
     await settingsRepository.update({ theme: "light", onboardingCompleted: true });

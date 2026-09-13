@@ -6,13 +6,16 @@ import { makeSyncedRepository } from "./helpers";
 
 const DEVICE_ID_KEY = "routini:deviceId";
 
-// Local-only for now: no `entityType` is passed to makeSyncedRepository, so a
-// mutation never enqueues to the outbox — the server `devices` table exists
-// but isn't applied on Production yet (see docs/PHASE_10_DEVICES_PLAN.md).
-// Passing an entityType here before `SYNCED_TABLES`/`DEXIE_TABLE` know about
-// "devices" would make SyncEngine.flushEntry silently drop every queued
-// mutation (PG_TABLE[entityType] resolves to undefined -> the entry is
-// discarded without ever reaching the server).
+// `devices` IS listed in SYNCED_TABLES/DEXIE_TABLE (pull + realtime are ready
+// and degrade gracefully — see CloudStore), but no `entityType` is passed to
+// makeSyncedRepository here, so a local mutation never enqueues to the
+// outbox. This is the one deliberate gate left: the server `devices` table
+// itself is NOT yet applied on Production (`20260913000000_phase10_devices.sql`,
+// confirmed absent via a read-only check), and until it is, an enqueued push
+// would throw on every flush tick (CloudStore.push intentionally throws for a
+// missing table so the mutation isn't silently dropped) — see
+// docs/PHASE_10_DEVICES_PLAN.md. The only change needed once the migration is
+// confirmed applied: pass `"devices"` here, exactly as `ai_actions` did.
 const base = makeSyncedRepository<Device>(db.devices);
 
 function deviceName(platform: Device["platform"]): string {

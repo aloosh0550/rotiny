@@ -181,6 +181,17 @@ export const cloudStore = {
   /**
    * Subscribe to every synced table for the current user. `onChange` gets the
    * new model (or `{ id }` for a hard delete). Returns an unsubscribe fn.
+   *
+   * A single realtime channel carries a `postgres_changes` binding per table.
+   * Empirically verified: if ONE binding targets a table that doesn't exist
+   * yet, the channel still reports `SUBSCRIBED` but silently stops delivering
+   * events for every OTHER bound table too — so before adding any binding we
+   * probe each table with a cheap 1-row select and skip the ones missing on
+   * the server (logged once via `warnMissingOnce`). This lets a not-yet-
+   * migrated entity (e.g. `devices`) sit in `SYNCED_TABLES` ahead of its
+   * migration without ever risking the rest of the app's realtime sync — and
+   * once the migration lands, the very next `subscribe()` call (next sign-in
+   * or reload) picks it up automatically, with no further code change.
    */
   async subscribe(
     userId: string,
@@ -188,8 +199,21 @@ export const cloudStore = {
   ): Promise<() => void> {
     const sb = await client();
     if (!sb) return () => {};
+
+    const usable = await Promise.all(
+      SYNCED_TABLES.map(async (table) => {
+        const { error } = await sb.from(table).select("id").limit(1);
+        if (error && isMissingTable(error)) {
+          warnMissingOnce(table, "subscribe");
+          return null;
+        }
+        return table;
+      }),
+    );
+
     const channel: RealtimeChannel = sb.channel(`routini-sync-${userId}`);
-    for (const table of SYNCED_TABLES) {
+    for (const table of usable) {
+      if (!table) continue;
       channel.on(
         "postgres_changes",
         { event: "*", schema: "public", table, filter: `user_id=eq.${userId}` },

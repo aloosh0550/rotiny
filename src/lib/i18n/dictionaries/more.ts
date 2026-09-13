@@ -101,6 +101,7 @@ export const settings = {
     syncDismiss: "تجاهل",
     syncThisDevice: "هذا الجهاز",
     syncThisDeviceSubtitle: "{{name}} — آخر ظهور: {{date}}",
+    syncThisDeviceNotSynced: "لا تتم مزامنة هذا الجهاز عبر الحساب بعد — قريبًا",
 
     privacyTitle: "الخصوصية",
     privacyBody: "روتيني يحفظ جميع بياناتك محليًا على جهازك فقط. لا تُرسل بياناتك إلى أي خادم خارجي في هذا الإصدار. عند إضافة المزامنة السحابية مستقبلًا، ستكون هذه الميزة اختيارية بالكامل.",
@@ -166,6 +167,7 @@ export const settings = {
     syncDismiss: "Dismiss",
     syncThisDevice: "This device",
     syncThisDeviceSubtitle: "{{name}} — last seen: {{date}}",
+    syncThisDeviceNotSynced: "This device isn't synced across your account yet — coming soon",
 
     privacyTitle: "Privacy",
     privacyBody: "Routini stores all your data locally on your device only. Nothing is sent to an external server in this version. When cloud sync is added in the future, it will be entirely optional.",

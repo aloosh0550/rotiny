@@ -27,12 +27,49 @@ function fakeSupabase(error: { code?: string; message?: string } | null) {
   };
 }
 
+/**
+ * A fake client for `subscribe()`: `.from(table).select().limit()` errors for
+ * any table in `missingTables` (simulating one not yet migrated on the
+ * server), and a fake `.channel()` records every `.on("postgres_changes", …)`
+ * binding so a test can assert which tables actually got bound.
+ */
+function fakeSupabaseForSubscribe(missingTables: Set<string>) {
+  const builderFor = (table: string) => ({
+    select: () => builderFor(table),
+    limit: () =>
+      Promise.resolve(
+        missingTables.has(table)
+          ? { data: null, error: MISSING }
+          : { data: [{ id: "x" }], error: null },
+      ),
+  });
+  const bindings: { table: string }[] = [];
+  const channel = {
+    on: (_type: string, opts: { table: string }) => {
+      bindings.push({ table: opts.table });
+      return channel;
+    },
+    subscribe: (cb: () => void) => {
+      cb();
+      return channel;
+    },
+  };
+  return {
+    auth: { getSession: () => Promise.resolve({ data: { session: { user: { id: "u1" } } } }) },
+    from: (table: string) => builderFor(table),
+    channel: () => channel,
+    removeChannel: () => Promise.resolve("ok" as const),
+    _bindings: bindings,
+  };
+}
+
 vi.mock("@/lib/supabase/client", () => ({
   getSupabase: vi.fn(),
 }));
 
 const { getSupabase } = await import("@/lib/supabase/client");
 const { cloudStore } = await import("@/lib/data/CloudStore");
+const { SYNCED_TABLES } = await import("@/lib/data/tables");
 
 const MISSING = { code: "PGRST205", message: 'Could not find the table "public.ai_actions" in the schema cache' };
 const OTHER = { code: "23505", message: "duplicate key value violates unique constraint" };
@@ -76,5 +113,34 @@ describe("CloudStore — missing-table degradation (a table added to SYNCED_TABL
     const res = await cloudStore.pull("tasks" as never, null);
     expect(res.rows).toEqual([]);
     await expect(cloudStore.getOne("tasks" as never, "id1")).resolves.not.toBeNull();
+  });
+});
+
+describe("CloudStore.subscribe — a missing table must not break realtime for every other table", () => {
+  it("skips the postgres_changes binding for a table that isn't on the server yet, but still binds every other SYNCED_TABLES entry", async () => {
+    const fake = fakeSupabaseForSubscribe(new Set(["devices"]));
+    vi.mocked(getSupabase).mockResolvedValue(fake as never);
+
+    const unsubscribe = await cloudStore.subscribe("u1", () => {});
+
+    const boundTables = new Set(fake._bindings.map((b) => b.table));
+    expect(boundTables.has("devices")).toBe(false);
+    for (const table of SYNCED_TABLES) {
+      if (table === "devices") continue;
+      expect(boundTables.has(table)).toBe(true);
+    }
+    unsubscribe();
+  });
+
+  it("binds every table when none are missing (control case)", async () => {
+    const fake = fakeSupabaseForSubscribe(new Set());
+    vi.mocked(getSupabase).mockResolvedValue(fake as never);
+
+    await cloudStore.subscribe("u1", () => {});
+
+    const boundTables = new Set(fake._bindings.map((b) => b.table));
+    for (const table of SYNCED_TABLES) {
+      expect(boundTables.has(table)).toBe(true);
+    }
   });
 });

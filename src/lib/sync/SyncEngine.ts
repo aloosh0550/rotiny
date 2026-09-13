@@ -32,10 +32,12 @@ const WIPE_PREFIXES = ["routini:sync:", "routini:reschedule:"];
 
 /** Local Dexie tables holding user data that are NOT in SYNCED_TABLES yet and so
  *  must be cleared explicitly on sign-out (their cloud migration isn't applied
- *  or isn't wired in yet). `aiActions` graduated into SYNCED_TABLES once its
- *  migration landed, so it's no longer listed here (the SYNCED_TABLES wipe
- *  loop below already covers it). */
-const EXTRA_LOCAL_TABLES = ["devices"] as const;
+ *  or isn't wired in yet). Empty for now: `aiActions` and `devices` both
+ *  graduated into `SYNCED_TABLES` (the wipe loop below covers them — `devices`
+ *  is still write-disabled via `devicesRepository`'s missing `entityType`, but
+ *  it's still a member of SYNCED_TABLES so its Dexie table is cleared like any
+ *  other). Kept as scaffolding for the next local-only-then-synced entity. */
+const EXTRA_LOCAL_TABLES: readonly string[] = [];
 
 /** The server `version` we last saw for a row — the base an offline edit builds on. */
 function getServerVersion(t: string, id: string): number | null {

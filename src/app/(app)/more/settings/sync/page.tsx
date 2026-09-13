@@ -106,6 +106,9 @@ export default function SyncSettingsPage() {
                       date: formatFullDate(new Date(thisDevice.lastSeenAt), locale),
                     })}
                   </p>
+                  <p className="text-xs text-text-tertiary">
+                    {t("settings.syncThisDeviceNotSynced")}
+                  </p>
                 </div>
               </Card>
             )}
