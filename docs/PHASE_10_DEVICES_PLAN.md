@@ -1,20 +1,34 @@
 # `devices` — implementation plan
 
-**Update (2026-09-13, same-day follow-up): §1–3 below are now implemented and
-unit-tested locally** (`Device`/`DeviceKind`/`DevicePlatform`/`PushProvider` in
-`models.ts`, Dexie v9 `devices` store, `devicesRepository.registerThisDevice()`
-called from `SyncEngine.start()` and from `/more/settings/sync`, +7 tests).
+**Status as of 2026-09-13 (third same-day follow-up): code-complete,
+locally tested end-to-end against the real migration — held only on the
+Production migration itself + explicit approval to merge `redesign/routini-v2`
+→ `main`.** §1 through §4 are all done. Nothing here claims Production cloud
+sync is active — it isn't, and won't be, until the migration below is applied.
 
-**Update (2026-09-13, second same-day follow-up): §4 is now done except its
-last, deliberate gate.** `devices` was added to `SYNCED_TABLES`/`DEXIE_TABLE`;
-`CloudStore.subscribe()` was hardened to probe each table before binding it
-to the shared realtime channel, so a missing `devices` table can no longer
-break sync for anything else. `devicesRepository` still calls
-`makeSyncedRepository` with **no `entityType`**, so a mutation never enqueues
-— that single line is the only change left once the migration is approved and
-applied. Confirmed via a read-only PostgREST probe (2026-09-13, no PAT) that
-`devices` is still absent on Production (`404 PGRST205`) — this migration was
-not run.
+- **§1–3 (2026-09-13, first follow-up)**: `Device`/`DeviceKind`/`DevicePlatform`/
+  `PushProvider` types, Dexie v9 `devices` store, `devicesRepository` +
+  `registerThisDevice()`/`getThisDevice()`, wired into `SyncEngine.start()` and
+  `/more/settings/sync`.
+- **§4 read/realtime path (2026-09-13, second follow-up)**: `devices` added to
+  `SYNCED_TABLES`/`DEXIE_TABLE`; `CloudStore.subscribe()` hardened to probe
+  each table before binding it to the shared realtime channel, so a missing
+  table can never break sync for anything else.
+- **§4 write path (2026-09-13, third follow-up — this update)**:
+  `devicesRepository` now passes `entityType: "devices"`, so a local mutation
+  enqueues and pushes exactly like every other entity. This surfaced and fixed
+  two real gaps (details in §4):
+  1. `SyncEngine.flush()` used to `break` its whole outbox loop on the first
+     entry that threw — fixed to `continue`, so a persistently-failing
+     `devices` push (expected until the migration lands) can never stall any
+     other entity's pending sync.
+  2. The local device id was a single global value reused across every
+     account on the same physical device — fixed to be scoped per
+     `(install, account)` pair, so two different accounts signing into the
+     same device never fight over the same server-side row.
+- Confirmed via a read-only PostgREST probe (2026-09-13, no PAT): `devices` is
+  still absent on Production (`404 PGRST205`) — this migration was not run in
+  any of the three follow-ups.
 
 ---
 
@@ -55,22 +69,26 @@ backup wiring (same pattern as every other Phase 7–11 entity).
 
 `version(9).stores({ devices: "id, sync.deletedAt" })` — additive, new store only.
 
-## 3. Repository (`src/lib/db/repositories/devicesRepository.ts`) — **implemented**
+## 3. Repository (`src/lib/db/repositories/devicesRepository.ts`) — **implemented, write path enabled**
 
-The shipped version (see the file itself) follows this sketch with one
-deliberate change: `makeSyncedRepository<Device>(db.devices)` is called with
-**no `entityType`** — passing `"devices"` today would enqueue mutations that
-`SyncEngine.flushEntry` can't resolve (`PG_TABLE["devices"]` is `undefined`
-until §4 runs), silently dropping them from the outbox. `registerThisDevice()`
-also exposes a paired `getThisDevice()` for the settings UI (§3b).
+`makeSyncedRepository<Device>(db.devices, "devices")` — cloud-synced. The
+local device id is **account-scoped**, not the single global value in the
+original sketch below: `registerThisDevice(userId?)` reads/writes
+`routini:deviceId:${userId}` when a user is known (from `SyncEngine.start()`
+or the settings page), falling back to the old global `routini:deviceId` only
+when fully signed out. This is a deliberate change from the original plan —
+see §4 for why a bare global id was unsafe. `registerThisDevice()` also
+exposes a paired `getThisDevice(userId?)` for the settings UI (§3b).
 
 ```ts
-const base = makeSyncedRepository<Device>(db.devices); // no entityType yet — see above
+// simplified — see the file itself for the account-scoped id logic
+const base = makeSyncedRepository<Device>(db.devices, "devices");
 export const devicesRepository = {
   ...base,
-  async registerThisDevice(): Promise<Device> {
-    const id = localStorage.getItem("routini:deviceId") ?? crypto.randomUUID();
-    localStorage.setItem("routini:deviceId", id);
+  async registerThisDevice(userId?: string): Promise<Device> {
+    const key = userId ? `routini:deviceId:${userId}` : "routini:deviceId";
+    const id = localStorage.getItem(key) ?? crypto.randomUUID();
+    localStorage.setItem(key, id);
     const existing = await base.getById(id);
     const patch = {
       kind: isNativePlatform() ? "phone" : "web",
@@ -93,52 +111,69 @@ nothing is synced to the cloud.
 `.catch(() => {})`) — mirrors how `lifeAreasRepository.ensureDefaults()` is
 already called there.
 
-## 4. Cloud wiring — **done except the one write-path gate**
+## 4. Cloud wiring — **fully implemented, held on the migration + merge approval**
 
-**Update (2026-09-13, second same-day follow-up):** this section originally
-said to add `"devices"` to `SYNCED_TABLES` only in the same deploy as the
-Production migration, because of the realtime risk below. That risk has since
-been **fixed at the root** instead of worked around by timing:
-`CloudStore.subscribe()` now probes every `SYNCED_TABLES` entry with a cheap
-1-row select before opening the shared realtime channel, and skips the
-`postgres_changes` binding for any table that isn't on the server yet. So:
+This section originally staged the rollout in two steps timed around the
+Production migration, because of the realtime risk below. That risk was
+**fixed at the root** instead of worked around by timing — see the finding
+box — which made it safe to finish the write path too, ahead of the
+migration, the same session:
 
-- `"devices"` **is now in `SYNCED_TABLES`/`DEXIE_TABLE`** — safe today, because
-  `pullAll()` already degrades gracefully for a missing table, and `subscribe()`
-  now does too (see above). Neither can break sync for any other entity.
-- The **only** thing still deliberately withheld is the *write* path:
-  `devicesRepository` calls `makeSyncedRepository<Device>(db.devices)` with
-  **no `entityType`**, so a local mutation never enqueues to the outbox. This
-  is the one real remaining risk if flipped early: `SyncEngine.flush()`'s
-  per-entry loop `break`s (stops processing the rest of the queue) on the
-  first entry whose push throws, and `CloudStore.push` intentionally throws
-  for a missing table (so the mutation isn't silently lost) — so an enqueued
-  `devices` mutation would repeatedly stall *every other entity's* pending
-  sync too, on every 20s flush tick, until the migration lands. This is
-  contained today only because `redesign/routini-v2` isn't merged into `main`.
+- **Read + realtime**: `"devices"` is in `SYNCED_TABLES`/`DEXIE_TABLE`.
+  `pullAll()` degrades gracefully for a missing table (existing
+  `isMissingTable` logic). `CloudStore.subscribe()` probes every table with a
+  cheap 1-row select before opening the shared realtime channel and skips the
+  `postgres_changes` binding for any table not yet on the server — so a
+  missing `devices` table can never break realtime for any other entity.
+- **Write**: `devicesRepository` now passes `entityType: "devices"` to
+  `makeSyncedRepository`, so `registerThisDevice()` enqueues and pushes like
+  any other entity. Doing this safely *before* the migration required two
+  fixes, both verified:
+  1. **`SyncEngine.flush()` per-entry isolation.** It used to `break` its
+     whole outbox loop on the first entry whose push threw — and
+     `CloudStore.push` intentionally throws for a missing table rather than
+     silently dropping the mutation, so an enqueued `devices` mutation would
+     have stalled *every other entity's* pending sync too, every 20s tick,
+     until the migration lands. Changed to `continue`: each failing entry is
+     retried on its own; healthy entities keep flushing normally. Proven with
+     a unit test (`tests/sync/flushIsolation.test.ts`) using a mocked
+     `CloudStore` where `devices` always throws and `tasks` always succeeds —
+     the task's queue entry is still removed after `flush()`, the device's
+     stays queued.
+  2. **Account-scoped device id.** `devices.id` is a bare Postgres primary
+     key, not namespaced per user — but the local id used to be a single
+     global `localStorage` value reused across every account on the same
+     physical device. If account A's device row already existed server-side
+     and account B (same device) reused the exact same id, the upsert would
+     collide with RLS (`user_id = auth.uid()` can't see/match A's row while
+     signed in as B). Fixed: the persisted id is now scoped to
+     `routini:deviceId:${userId}` (falling back to the old global key only
+     when fully signed out) — two accounts on the same device always get two
+     independently-owned rows; the same account signing in repeatedly still
+     reuses its own id (no duplicate rows).
 
-> **Original finding (still true, now mitigated by the probe-and-skip fix
-> above rather than by deploy timing)**: a Supabase Realtime channel with a
+> **Realtime finding (still true, mitigated at the root by the probe-and-skip
+> fix, not by deploy timing)**: a Supabase Realtime channel with a
 > `postgres_changes` binding to a table that does not yet exist silently
 > stops delivering events for every other table bound in the same channel —
 > the channel still reports `SUBSCRIBED` (no visible error), but real-time
 > sync goes quiet for everything (tasks, habits, appointments, …) for every
 > signed-in user.
 
-**Verified, not just reasoned about**: a new integration test
-(`tests/integration/sync.integration.test.ts`) calls `CloudStore.push/getOne`
-directly for `"devices"` against a local Supabase stack with this exact
-migration applied, and confirms the row round-trips with the correct columns
-and that RLS isolates/rejects a forged cross-user row — proving the migration
-itself is compatible with the client, independent of the deliberate
-repository-level write gate.
+**Verified live, not just reasoned about**, against a local Supabase stack
+running this exact migration: create → push → pull → `lastSeenAt` update →
+sign-out wipe → RLS isolation → forged-insert rejection, all through
+`devicesRepository` itself (not a bypass) — plus the account-guard test
+extended to seed a leftover device row for account A and confirm it's wiped
+locally, never reaches B's cloud, and B still gets its own working device row
+afterward.
 
-Sequence once you're ready:
-1. Apply `20260913000000_phase10_devices.sql` (you run it; I don't apply it unprompted).
-2. In the same PR: add `entityType: "devices"` to `devicesRepository`'s
-   `makeSyncedRepository` call (the only remaining code change), merge
-   `redesign/routini-v2` → `main` (which deploys) right after confirming the
-   migration succeeded.
+**The only thing left is the migration itself + the merge**:
+1. Apply `20260913000000_phase10_devices.sql` on Production (owner runs it;
+   the agent does not apply it unprompted).
+2. Merge `redesign/routini-v2` → `main` (which auto-deploys) right after
+   confirming the migration succeeded — **no further code change is needed**,
+   unlike the original two-step plan.
 
 ## 5. What this unlocks (and what it doesn't)
 
@@ -149,13 +184,18 @@ Sequence once you're ready:
 
 ## 6. Estimated risk
 
-**Low.** Purely additive (new table, new Dexie store, new repository, one new
-call site in `SyncEngine.start()`). No existing table, column, or behavior
-changes. Same shape as the `ai_conversations`/`ai_memory`/`reviews` rollouts
-that are already live and stable on Production. The migration itself has been
-verified compatible end-to-end against a real local Supabase instance (§4).
-The only residual risk is procedural, not technical: flipping
-`devicesRepository`'s `entityType` on **before** the migration is applied would
-make every `devices` mutation stall the entire sync outbox (see §4) — avoided
-simply by doing that one-line change only after the migration is confirmed
-live, exactly as `ai_actions` was staged.
+**Low, and now verified rather than just reasoned about.** Purely additive
+(new table, new Dexie store, new repository, one new call site in
+`SyncEngine.start()`). No existing table, column, or behavior changes. Same
+shape as the `ai_conversations`/`ai_memory`/`reviews` rollouts that are
+already live and stable on Production. The migration itself round-trips
+correctly end-to-end against a real local Supabase instance (§4), including
+RLS ownership, forged-insert rejection, and cross-account isolation.
+
+What used to be residual risk is now fixed in code, not just avoided by
+timing: `SyncEngine.flush()` no longer lets one persistently-failing entity
+block every other entity's sync, and the device id is account-scoped so two
+accounts on the same physical device can never collide on the same
+server-side row. The only thing genuinely still pending is the migration
+itself (owner-run) and the merge to `main` (owner-approved) — no code change
+is queued behind either.

@@ -37,10 +37,11 @@ export default function SyncSettingsPage() {
   }, [sync.conflicts]);
 
   useEffect(() => {
-    // Local-only bookkeeping — no network call, just a Dexie row for this
-    // install. Registers it if this is the first visit to this page.
-    void devicesRepository.registerThisDevice().then(setThisDevice);
-  }, []);
+    // Registers (or bumps lastSeenAt for) this install's row, scoped to the
+    // signed-in account when there is one — matches SyncEngine.start()'s
+    // account-scoped id so this doesn't create a second, competing row.
+    void devicesRepository.registerThisDevice(user?.id).then(setThisDevice);
+  }, [user?.id]);
 
   const refresh = () => setConflicts(getSyncConflicts());
 

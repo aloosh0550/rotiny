@@ -59,11 +59,12 @@ describe("devicesRepository", () => {
     expect(fetched?.id).toBe(registered.id);
   });
 
-  it("the write path is still local-only: creating/updating never enqueues to the sync outbox", async () => {
-    // devicesRepository deliberately omits `entityType` — the migration
-    // (20260913000000_phase10_devices.sql) isn't applied on Production yet,
-    // so an enqueued push would throw on every flush tick. This is the one
-    // gate left; see docs/PHASE_10_DEVICES_PLAN.md.
+  it("with Supabase unconfigured (this test's default env), registerThisDevice still works fully offline and never touches the outbox", async () => {
+    // enqueue() (helpers.ts) no-ops unless isSupabaseConfigured() — this
+    // confirms the app degrades correctly with no cloud account at all.
+    // The "configured" branch (entityType now enqueues) is covered by
+    // tests/data/devicesRepositorySync.test.ts, which mocks env config
+    // directly since isSupabaseConfigured() is read once at module load.
     await devicesRepository.registerThisDevice();
     await devicesRepository.registerThisDevice();
     expect(await db.syncQueue.count()).toBe(0);

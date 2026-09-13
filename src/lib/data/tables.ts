@@ -7,14 +7,15 @@
  * children so foreign keys resolve.
  *
  * `devices` is listed here (its Production migration
- * `20260913000000_phase10_devices.sql` is NOT yet applied) so `pullAll()` and
- * `cloudStore.subscribe()` are ready the moment it lands — both already
- * degrade gracefully for a table missing on the server (see
- * `CloudStore.isMissingTable` / the per-table probe in `subscribe()`). The one
- * piece deliberately still off is the *write* path: `devicesRepository` calls
- * `makeSyncedRepository` with no `entityType`, so a local mutation never
- * enqueues to the outbox — flipping that one line is the only code change
- * left once the migration is confirmed live (see `docs/PHASE_10_DEVICES_PLAN.md`).
+ * `20260913000000_phase10_devices.sql` is NOT yet applied) — `pullAll()` and
+ * `cloudStore.subscribe()` already degrade gracefully for a table missing on
+ * the server (see `CloudStore.isMissingTable` / the per-table probe in
+ * `subscribe()`), and `devicesRepository` now enqueues writes too
+ * (`entityType: "devices"`) — `SyncEngine.flush()` isolates a persistently
+ * failing entry so a stuck `devices` push can never block any other entity's
+ * sync. Until the migration is applied, a queued `devices` mutation just sits
+ * retrying harmlessly; the moment the migration lands, it flushes normally
+ * with no further code change (see `docs/PHASE_10_DEVICES_PLAN.md`).
  */
 
 export const SYNCED_TABLES = [

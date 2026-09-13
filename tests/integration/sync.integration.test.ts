@@ -509,6 +509,14 @@ d("SyncEngine ↔ Supabase", () => {
       id: leftover, title: "بقايا حساب أ", hasTime: false, priority: "normal", status: "pending", reminders: [],
       sync: { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), deletedAt: null, syncStatus: "pending", remoteId: null, version: 1 },
     });
+    // same simulation for `devices` — a stale device row + a still-queued
+    // mutation for it left over from account A must not leak to B either.
+    const leftoverDevice = crypto.randomUUID();
+    await db.table("devices").put({
+      id: leftoverDevice, kind: "web", name: "جهاز أ القديم", platform: "web",
+      pushToken: null, pushProvider: "none", lastSeenAt: new Date().toISOString(),
+      sync: { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), deletedAt: null, syncStatus: "pending", remoteId: null, version: 1 },
+    });
     localStorage.setItem("routini:sync:account", userA.id);
     localStorage.setItem("routini:sync:pulledOnce", "1");
 
@@ -524,6 +532,15 @@ d("SyncEngine ↔ Supabase", () => {
     const inBCloud = await admin.from("tasks").select("id").eq("id", leftover);
     expect(inBCloud.data).toHaveLength(0);
     expect(localStorage.getItem("routini:sync:account")).toBe(userB.id);
+
+    // same for the leftover device: wiped locally, never reached B's cloud —
+    // and `devices` still works afterward (B's own device auto-registers)
+    const { devicesRepository } = await import("@/lib/db/repositories");
+    expect(await devicesRepository.getById(leftoverDevice)).toBeFalsy();
+    const deviceInBCloud = await admin.from("devices").select("id").eq("id", leftoverDevice);
+    expect(deviceInBCloud.data).toHaveLength(0);
+    const bOwnDevices = await admin.from("devices").select("id").eq("user_id", userB.id);
+    expect(bOwnDevices.data!.length).toBeGreaterThan(0);
 
     // restore A for any later test / afterAll
     await syncEngine.stop();
