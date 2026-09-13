@@ -19,3 +19,4 @@ export {
 export { reviewsRepository, achievementsRepository } from "./reviewsRepositories";
 export { aiConversationsRepository, aiMemoryRepository } from "./aiRepositories";
 export { aiActionsRepository } from "./aiActionsRepository";
+export { devicesRepository } from "./devicesRepository";

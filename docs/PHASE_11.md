@@ -94,15 +94,18 @@ every path here has a deterministic, offline fallback and the AI only ever
 Full run: **126 pass / 11 integration skipped**. `tsc` + `lint` clean. `next build`
 (cloud + local) clean. QA 36/36, no overflow. `npm run pwa:check` passes.
 
-## Pending migration (NOT applied to Production — awaiting explicit user approval)
+## Migration — confirmed applied on Production (2026-09-13)
 
 `supabase/migrations/20260914000000_phase11_ai_actions.sql` — `ai_actions` table
 (cloud audit log; RLS "owner all", trigger, indexes, 2 CHECKs, FK CASCADE, realtime).
-**Verified on the local stack, code-complete and tested (see above).** Confirmed still
-absent on Production via a read-only schema query (2026-09-13). Applying it is the only
-remaining step to light up cloud sync for `ai_actions` — the client code already handles
-both states (present/absent) safely, so this migration can be applied at any time without
-a further code change, but `main` should only be merged in the same step (see above).
+**Verified on the local stack, code-complete and tested (see above).** Confirmed present
+on Production via a read-only PostgREST probe using only the public anon key (comparative
+signature: `200` + RLS-filtered empty rows, same as the confirmed-live `reviews` table, vs.
+`404 PGRST205` for the confirmed-absent `devices` table — no PAT/service-role query used).
+The agent did not run this migration in either audit session. The client code already
+handled both states (present/absent) safely, so no further code change is needed — the
+only remaining step is merging `redesign/routini-v2` → `main` (which auto-deploys), held
+pending the owner's explicit go-ahead.
 
 ## External setup (optional — for the AI *upgrade* only)
 

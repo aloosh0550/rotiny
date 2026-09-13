@@ -1,15 +1,28 @@
-# `devices` — implementation plan (code not yet written)
+# `devices` — implementation plan
 
-Verified during the Phase 15+ closure audit (2026-09-13): the
+**Update (2026-09-13, same-day follow-up): §1–3 below are now implemented and
+unit-tested locally** (`Device`/`DeviceKind`/`DevicePlatform`/`PushProvider` in
+`models.ts`, Dexie v9 `devices` store, `devicesRepository.registerThisDevice()`
+called from `SyncEngine.start()` and from `/more/settings/sync`, +7 tests).
+**§4 (cloud wiring) is deliberately NOT done** — `devices` is still local-only
+(`makeSyncedRepository(db.devices)` with no `entityType`, so nothing enqueues)
+and stays out of `SYNCED_TABLES` until the migration below is applied. Confirmed
+via a read-only PostgREST probe (2026-09-13, no PAT) that `devices` is still
+absent on Production (`404 PGRST205`).
+
+---
+
+Originally written during the Phase 15+ closure audit (2026-09-13): the
 `20260913000000_phase10_devices.sql` migration exists and is additive/safe, but
-**zero client code depends on it** — no `devicesRepository`, no device
-registration, no multi-device-presence UI anywhere in `src/`. Applying the
-migration alone would create an empty, unused table on Production; that's not
-useful on its own; hence this plan instead of a pointless migration run.
+at the time **zero client code depended on it** — no `devicesRepository`, no
+device registration, no multi-device-presence UI anywhere in `src/`. Applying
+the migration alone would have created an empty, unused table on Production;
+that's not useful on its own; hence this plan instead of a pointless migration
+run.
 
-Do this work **before** asking for the migration to be applied, then apply the
-migration and merge in one step (see the empirically-proven realtime caveat in
-§4 — it changes the merge order).
+§1–3 (local code) are now done. §4 (cloud wiring) still applies exactly as
+written: do it **only after** the migration is applied, in the same step (see
+the empirically-proven realtime caveat below — it changes the merge order).
 
 ## 1. Types (`src/lib/types/models.ts`)
 
@@ -36,10 +49,17 @@ backup wiring (same pattern as every other Phase 7–11 entity).
 
 `version(9).stores({ devices: "id, sync.deletedAt" })` — additive, new store only.
 
-## 3. Repository (`src/lib/db/repositories/devicesRepository.ts`)
+## 3. Repository (`src/lib/db/repositories/devicesRepository.ts`) — **implemented**
+
+The shipped version (see the file itself) follows this sketch with one
+deliberate change: `makeSyncedRepository<Device>(db.devices)` is called with
+**no `entityType`** — passing `"devices"` today would enqueue mutations that
+`SyncEngine.flushEntry` can't resolve (`PG_TABLE["devices"]` is `undefined`
+until §4 runs), silently dropping them from the outbox. `registerThisDevice()`
+also exposes a paired `getThisDevice()` for the settings UI (§3b).
 
 ```ts
-const base = makeSyncedRepository<Device>(db.devices, "devices");
+const base = makeSyncedRepository<Device>(db.devices); // no entityType yet — see above
 export const devicesRepository = {
   ...base,
   async registerThisDevice(): Promise<Device> {
@@ -54,6 +74,13 @@ export const devicesRepository = {
     return existing ? base.update(id, patch) : base.create({ id, ...patch, pushProvider: "none", sync: createSyncMeta() });
   },
 };
+```
+
+## 3b. Settings UI — **implemented**
+
+`/more/settings/sync` now shows a "هذا الجهاز" card (name + last-seen), backed
+by `registerThisDevice()` called once on mount. Purely informational today —
+there's no cross-device list yet since nothing is synced to the cloud.
 ```
 `registerThisDevice()` is called once from `SyncEngine.start()` (fire-and-forget,
 `.catch(() => {})`) — mirrors how `lifeAreasRepository.ensureDefaults()` is

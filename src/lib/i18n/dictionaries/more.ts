@@ -99,6 +99,8 @@ export const settings = {
     syncConflictExplain: "تم تعديل هذا العنصر من جهاز آخر. اعتمدنا نسخة السحابة — يمكنك إعادة تطبيق تغييرك.",
     syncReapply: "أعد تطبيق تغييري",
     syncDismiss: "تجاهل",
+    syncThisDevice: "هذا الجهاز",
+    syncThisDeviceSubtitle: "{{name}} — آخر ظهور: {{date}}",
 
     privacyTitle: "الخصوصية",
     privacyBody: "روتيني يحفظ جميع بياناتك محليًا على جهازك فقط. لا تُرسل بياناتك إلى أي خادم خارجي في هذا الإصدار. عند إضافة المزامنة السحابية مستقبلًا، ستكون هذه الميزة اختيارية بالكامل.",
@@ -162,6 +164,8 @@ export const settings = {
     syncConflictExplain: "This item was changed on another device. We kept the cloud version — you can re-apply your change.",
     syncReapply: "Re-apply my change",
     syncDismiss: "Dismiss",
+    syncThisDevice: "This device",
+    syncThisDeviceSubtitle: "{{name}} — last seen: {{date}}",
 
     privacyTitle: "Privacy",
     privacyBody: "Routini stores all your data locally on your device only. Nothing is sent to an external server in this version. When cloud sync is added in the future, it will be entirely optional.",

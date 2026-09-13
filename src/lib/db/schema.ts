@@ -19,6 +19,7 @@ import type {
   AiConversation,
   AiMemory,
   AiActionLog,
+  Device,
   UserSettings,
   SyncQueueEntry,
 } from "@/lib/types";
@@ -52,6 +53,7 @@ export class RoutiniDB extends Dexie {
   aiConversations!: Table<AiConversation, string>;
   aiMemory!: Table<AiMemory, string>;
   aiActions!: Table<AiActionLog, string>;
+  devices!: Table<Device, string>;
   settings!: Table<UserSettings, string>;
   syncQueue!: Table<SyncQueueEntry, string>;
 
@@ -147,6 +149,16 @@ export class RoutiniDB extends Dexie {
     // applied and `ai_actions` is added to SYNCED_TABLES.
     this.version(8).stores({
       aiActions: "id, status, sync.deletedAt",
+    });
+
+    // v9 — additive: per-install device record (Phase 10). New store only.
+    // Local-only — no `entityType` is passed to its repository, so it never
+    // enqueues to the outbox. The server table exists
+    // (`20260913000000_phase10_devices.sql`, verified on the local stack) but
+    // stays unapplied on Production until approved; see
+    // `docs/PHASE_10_DEVICES_PLAN.md` for the follow-up cloud-wiring step.
+    this.version(9).stores({
+      devices: "id, sync.deletedAt",
     });
   }
 }

@@ -338,9 +338,9 @@ export type AiActionSource = "planner" | "reschedule" | "assistant";
 
 /**
  * The audit log of every action the planner/assistant proposed or applied.
- * Local-first (works offline); syncs to the cloud once
- * `20260914000000_phase11_ai_actions.sql` is applied and the table is wired into
- * `SYNCED_TABLES`. Nothing here ever deletes user data — see `src/lib/ai/actions.ts`.
+ * Cloud-synced (wired into `SYNCED_TABLES` since the closure audit — the
+ * migration `20260914000000_phase11_ai_actions.sql` is live on Production).
+ * Nothing here ever deletes user data — see `src/lib/ai/actions.ts`.
  */
 export interface AiActionLog {
   id: ID;
@@ -356,5 +356,30 @@ export interface AiActionLog {
   source: AiActionSource;
   appliedAt?: string | null;
   error?: string | null;
+  sync: SyncMeta;
+}
+
+/* ----------------------------------------------------------------- Phase 10 -- */
+
+export type DeviceKind = "phone" | "tablet" | "web" | "watch" | "other";
+export type DevicePlatform = "web" | "android" | "ios" | "other";
+export type PushProvider = "none" | "fcm" | "webpush";
+
+/**
+ * One row per install that has ever signed in on this device. Local-only for
+ * now (no `entityType` passed to its repository) — the server table exists
+ * (`20260913000000_phase10_devices.sql`, verified on the local stack) but is
+ * NOT yet applied on Production, so this never enters `SYNCED_TABLES`/the
+ * realtime channel until that migration is approved and applied (see
+ * `docs/PHASE_10_DEVICES_PLAN.md`).
+ */
+export interface Device {
+  id: ID;
+  kind: DeviceKind;
+  name: string;
+  platform: DevicePlatform;
+  pushToken?: string | null;
+  pushProvider: PushProvider;
+  lastSeenAt: string;
   sync: SyncMeta;
 }

@@ -31,8 +31,11 @@ const SV_KEY = (t: string, id: string) => `routini:sync:sv:${t}:${id}`;
 const WIPE_PREFIXES = ["routini:sync:", "routini:reschedule:"];
 
 /** Local Dexie tables holding user data that are NOT in SYNCED_TABLES yet and so
- *  must be cleared explicitly on sign-out (their cloud migration isn't applied). */
-const EXTRA_LOCAL_TABLES = ["aiActions"] as const;
+ *  must be cleared explicitly on sign-out (their cloud migration isn't applied
+ *  or isn't wired in yet). `aiActions` graduated into SYNCED_TABLES once its
+ *  migration landed, so it's no longer listed here (the SYNCED_TABLES wipe
+ *  loop below already covers it). */
+const EXTRA_LOCAL_TABLES = ["devices"] as const;
 
 /** The server `version` we last saw for a row — the base an offline edit builds on. */
 function getServerVersion(t: string, id: string): number | null {
@@ -180,6 +183,15 @@ class SyncEngineImpl {
     try {
       const { lifeAreasRepository } = await import("@/lib/db/repositories");
       await lifeAreasRepository.ensureDefaults();
+    } catch {
+      /* ignore */
+    }
+    // Local-only bookkeeping (no cloud call): records this install exists and
+    // was last seen now. Stays off SYNCED_TABLES until the devices migration
+    // is applied — see docs/PHASE_10_DEVICES_PLAN.md.
+    try {
+      const { devicesRepository } = await import("@/lib/db/repositories");
+      await devicesRepository.registerThisDevice();
     } catch {
       /* ignore */
     }
