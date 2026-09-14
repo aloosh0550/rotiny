@@ -31,8 +31,11 @@ const SV_KEY = (t: string, id: string) => `routini:sync:sv:${t}:${id}`;
 const WIPE_PREFIXES = ["routini:sync:", "routini:reschedule:"];
 
 /** Local Dexie tables holding user data that are NOT in SYNCED_TABLES yet and so
- *  must be cleared explicitly on sign-out (their cloud migration isn't applied). */
-const EXTRA_LOCAL_TABLES = ["aiActions"] as const;
+ *  must be cleared explicitly on sign-out (their cloud migration isn't applied
+ *  or isn't wired in yet). Empty for now: `aiActions` and `devices` both
+ *  graduated into `SYNCED_TABLES` (the wipe loop below covers them). Kept as
+ *  scaffolding for the next local-only-then-synced entity. */
+const EXTRA_LOCAL_TABLES: readonly string[] = [];
 
 /** The server `version` we last saw for a row — the base an offline edit builds on. */
 function getServerVersion(t: string, id: string): number | null {
@@ -180,6 +183,16 @@ class SyncEngineImpl {
     try {
       const { lifeAreasRepository } = await import("@/lib/db/repositories");
       await lifeAreasRepository.ensureDefaults();
+    } catch {
+      /* ignore */
+    }
+    // Records this install exists and was last seen now, scoped to THIS
+    // account (see devicesRepository's account-scoped id) — so the same
+    // physical device signing into a different account never fights over
+    // the same server-side row. Now cloud-synced (see tables.ts / CloudStore).
+    try {
+      const { devicesRepository } = await import("@/lib/db/repositories");
+      await devicesRepository.registerThisDevice(userId);
     } catch {
       /* ignore */
     }
@@ -354,8 +367,14 @@ class SyncEngineImpl {
         await this.flushEntry(entry);
         await syncQueueRepository.remove(entry.id);
       } catch {
-        // keep it queued; try again next tick
-        break;
+        // Keep it queued; try again next tick. Deliberately `continue`, not
+        // `break`: one entity that's persistently failing (e.g. `devices`
+        // mutations before its migration is applied — CloudStore.push
+        // intentionally throws for a missing table rather than dropping the
+        // mutation) must never block every OTHER entity's pending sync in
+        // the same tick. Each failing entry is retried on its own on the
+        // next flush; entries for healthy entities keep flushing normally.
+        continue;
       }
     }
 

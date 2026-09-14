@@ -36,6 +36,10 @@ async function seedEverything() {
     id: "a1", kind: "deferTaskToTomorrow", payload: { taskId: "t1" }, reason: "سبب",
     status: "applied", autonomyAtTime: "automatic", source: "assistant", appliedAt: null, error: null, sync: SYNC(),
   });
+  await db.devices.add({
+    id: "d1", kind: "phone", name: "هاتف Android", platform: "android",
+    pushToken: null, pushProvider: "none", lastSeenAt: "2026-09-09T00:00:00.000Z", sync: SYNC(),
+  });
   await db.settings.add({
     id: "singleton", locale: "ar", theme: "dark", onboardingCompleted: true, weekStartsOn: 0,
     // deliberately partial — repositories migrate the shape
@@ -57,12 +61,13 @@ afterEach(async () => {
 });
 
 describe("SyncEngine.wipeLocal — sign-out leaves nothing user-identifying", () => {
-  it("clears every synced table AND the local-only aiActions table", async () => {
+  it("clears every synced table AND the local-only aiActions/devices tables", async () => {
     await syncEngine.wipeLocal();
     expect(await db.tasks.count()).toBe(0);
     expect(await db.aiConversations.count()).toBe(0);
     expect(await db.aiMemory.count()).toBe(0);
     expect(await db.aiActions.count()).toBe(0); // <-- the Phase 15 fix
+    expect(await db.devices.count()).toBe(0); // <-- local-only until its migration lands
     expect(await db.settings.get("singleton")).toBeUndefined();
   });
 

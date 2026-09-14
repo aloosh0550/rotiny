@@ -27,6 +27,30 @@ export interface PullResult {
   cursor: string | null;
 }
 
+/**
+ * True for a Postgres/PostgREST "this table doesn't exist (yet)" error — e.g. a
+ * table whose entry was added to `SYNCED_TABLES` before its migration was
+ * applied to this project. We degrade gracefully instead of throwing, so
+ * shipping the client code ahead of a migration never breaks sync for every
+ * OTHER table: `42P01` is Postgres' `undefined_table`; `PGRST205` is
+ * PostgREST's "could not find the table in the schema cache".
+ */
+function isMissingTable(error: { code?: string; message?: string } | null | undefined): boolean {
+  if (!error) return false;
+  if (error.code === "42P01" || error.code === "PGRST205") return true;
+  return /relation .* does not exist|could not find the table/i.test(error.message ?? "");
+}
+
+const warnedMissing = new Set<string>();
+function warnMissingOnce(table: string, op: string) {
+  const key = `${table}:${op}`;
+  if (warnedMissing.has(key)) return;
+  warnedMissing.add(key);
+  console.warn(
+    `[sync] "${table}" isn't on the server yet (${op}) — skipping until its migration is applied.`,
+  );
+}
+
 export const cloudStore = {
   async isReady(): Promise<boolean> {
     return (await client()) !== null;
@@ -39,7 +63,13 @@ export const cloudStore = {
     let q = sb.from(table).select("*").order("updated_at", { ascending: true }).limit(1000);
     if (sinceIso) q = q.gt("updated_at", sinceIso);
     const { data, error } = await q;
-    if (error) throw new Error(`pull ${table}: ${error.message}`);
+    if (error) {
+      if (isMissingTable(error)) {
+        warnMissingOnce(table, "pull");
+        return { table, rows: [], cursor: sinceIso };
+      }
+      throw new Error(`pull ${table}: ${error.message}`);
+    }
     const rows = (data ?? []).map((r) => rowToModel(r as Row));
     const cursor =
       rows.length > 0 ? String((data![data!.length - 1] as Row).updated_at) : sinceIso;
@@ -51,11 +81,25 @@ export const cloudStore = {
     const sb = await client();
     if (!sb) return null;
     const { data, error } = await sb.from(table).select("*").eq("id", id).maybeSingle();
-    if (error) throw new Error(`getOne ${table} ${id}: ${error.message}`);
+    if (error) {
+      if (isMissingTable(error)) {
+        warnMissingOnce(table, "getOne");
+        return null;
+      }
+      throw new Error(`getOne ${table} ${id}: ${error.message}`);
+    }
     return data ? rowToModel(data as Row) : null;
   },
 
-  /** Upsert one model (id-preserving). Returns the server's canonical row. */
+  /**
+   * Upsert one model (id-preserving). Returns the server's canonical row.
+   *
+   * Unlike `pull`/`getOne`, a missing table here still THROWS (after a one-time
+   * warning) rather than resolving — this is a write from the offline outbox,
+   * and `SyncEngine.flushEntry` only removes a queue entry once its push
+   * resolves without error. Swallowing it here would silently drop the
+   * mutation forever instead of retrying once the migration is applied.
+   */
   async push(table: SyncedTable, model: Model, userId: string): Promise<Model | null> {
     const sb = await client();
     if (!sb) return null;
@@ -64,11 +108,14 @@ export const cloudStore = {
     delete row.updated_at;
     delete row.version;
     const { data, error } = await sb.from(table).upsert(row, { onConflict: "id" }).select().single();
-    if (error) throw new Error(`push ${table} ${model.id}: ${error.message}`);
+    if (error) {
+      if (isMissingTable(error)) warnMissingOnce(table, "push");
+      throw new Error(`push ${table} ${model.id}: ${error.message}`);
+    }
     return data ? rowToModel(data as Row) : null;
   },
 
-  /** Soft-delete (tombstone) on the server. */
+  /** Soft-delete (tombstone) on the server. Missing-table still throws — see `push`. */
   async remove(table: SyncedTable, id: string): Promise<void> {
     const sb = await client();
     if (!sb) return;
@@ -76,7 +123,10 @@ export const cloudStore = {
       .from(table)
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", id);
-    if (error) throw new Error(`remove ${table} ${id}: ${error.message}`);
+    if (error) {
+      if (isMissingTable(error)) warnMissingOnce(table, "remove");
+      throw new Error(`remove ${table} ${id}: ${error.message}`);
+    }
   },
 
   /** Read the user's `profiles.settings` blob (or null). */
@@ -131,6 +181,17 @@ export const cloudStore = {
   /**
    * Subscribe to every synced table for the current user. `onChange` gets the
    * new model (or `{ id }` for a hard delete). Returns an unsubscribe fn.
+   *
+   * A single realtime channel carries a `postgres_changes` binding per table.
+   * Empirically verified: if ONE binding targets a table that doesn't exist
+   * yet, the channel still reports `SUBSCRIBED` but silently stops delivering
+   * events for every OTHER bound table too — so before adding any binding we
+   * probe each table with a cheap 1-row select and skip the ones missing on
+   * the server (logged once via `warnMissingOnce`). This lets a not-yet-
+   * migrated entity (e.g. `devices`) sit in `SYNCED_TABLES` ahead of its
+   * migration without ever risking the rest of the app's realtime sync — and
+   * once the migration lands, the very next `subscribe()` call (next sign-in
+   * or reload) picks it up automatically, with no further code change.
    */
   async subscribe(
     userId: string,
@@ -138,8 +199,21 @@ export const cloudStore = {
   ): Promise<() => void> {
     const sb = await client();
     if (!sb) return () => {};
+
+    const usable = await Promise.all(
+      SYNCED_TABLES.map(async (table) => {
+        const { error } = await sb.from(table).select("id").limit(1);
+        if (error && isMissingTable(error)) {
+          warnMissingOnce(table, "subscribe");
+          return null;
+        }
+        return table;
+      }),
+    );
+
     const channel: RealtimeChannel = sb.channel(`routini-sync-${userId}`);
-    for (const table of SYNCED_TABLES) {
+    for (const table of usable) {
+      if (!table) continue;
       channel.on(
         "postgres_changes",
         { event: "*", schema: "public", table, filter: `user_id=eq.${userId}` },

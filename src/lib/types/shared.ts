@@ -19,7 +19,8 @@ export type EntityType =
   | "achievement"
   | "aiConversation"
   | "aiMemory"
-  | "aiAction";
+  | "aiAction"
+  | "device";
 
 export type EnergyLevel = "high" | "good" | "medium" | "low";
 

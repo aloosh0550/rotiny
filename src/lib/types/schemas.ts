@@ -277,6 +277,17 @@ export const aiActionLogSchema = z.object({
   sync: syncMetaSchema,
 });
 
+export const deviceSchema = z.object({
+  id: idSchema,
+  kind: z.enum(["phone", "tablet", "web", "watch", "other"]),
+  name: z.string(),
+  platform: z.enum(["web", "android", "ios", "other"]),
+  pushToken: z.string().nullable().optional(),
+  pushProvider: z.enum(["none", "fcm", "webpush"]),
+  lastSeenAt: z.string(),
+  sync: syncMetaSchema,
+});
+
 // Settings shapes evolve version-to-version; keep the backup schema lenient so an
 // older/newer export still imports. `settingsRepository.migrateSettingsShape` fills gaps.
 const notificationPreferencesSchema = z.looseObject({ enabled: z.boolean() });
@@ -300,7 +311,7 @@ export const userSettingsSchema = z.looseObject({
 
 export const syncQueueEntrySchema = z.object({
   id: idSchema,
-  entityType: z.enum(["appointment", "task", "habit", "dhikr", "settings", "taskCategory", "dailyPlan", "dailyEnergy", "measurement", "lifeArea", "goal", "goalMilestone", "review", "achievement", "aiConversation", "aiMemory", "aiAction"]),
+  entityType: z.enum(["appointment", "task", "habit", "dhikr", "settings", "taskCategory", "dailyPlan", "dailyEnergy", "measurement", "lifeArea", "goal", "goalMilestone", "review", "achievement", "aiConversation", "aiMemory", "aiAction", "device"]),
   entityId: idSchema,
   operation: z.enum(["create", "update", "delete"]),
   payload: z.unknown(),
@@ -332,6 +343,7 @@ export const backupDataSchema = z.object({
     aiConversations: z.array(aiConversationSchema).optional(),
     aiMemory: z.array(aiMemorySchema).optional(),
     aiActions: z.array(aiActionLogSchema).optional(),
+    devices: z.array(deviceSchema).optional(),
     settings: z.array(userSettingsSchema),
     syncQueue: z.array(syncQueueEntrySchema),
   }),
@@ -362,6 +374,7 @@ export interface BackupData {
     aiConversations?: import("./models").AiConversation[];
     aiMemory?: import("./models").AiMemory[];
     aiActions?: import("./models").AiActionLog[];
+    devices?: import("./models").Device[];
     settings: import("./settings").UserSettings[];
     syncQueue: import("./settings").SyncQueueEntry[];
   };

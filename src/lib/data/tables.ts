@@ -5,6 +5,17 @@
  *
  * Order matters for the initial pull / local->cloud upload: parents before
  * children so foreign keys resolve.
+ *
+ * `devices` is listed here (its Production migration
+ * `20260913000000_phase10_devices.sql` is NOT yet applied) — `pullAll()` and
+ * `cloudStore.subscribe()` already degrade gracefully for a table missing on
+ * the server (see `CloudStore.isMissingTable` / the per-table probe in
+ * `subscribe()`), and `devicesRepository` now enqueues writes too
+ * (`entityType: "devices"`) — `SyncEngine.flush()` isolates a persistently
+ * failing entry so a stuck `devices` push can never block any other entity's
+ * sync. Until the migration is applied, a queued `devices` mutation just sits
+ * retrying harmlessly; the moment the migration lands, it flushes normally
+ * with no further code change (see `docs/PHASE_10_DEVICES_PLAN.md`).
  */
 
 export const SYNCED_TABLES = [
@@ -26,6 +37,8 @@ export const SYNCED_TABLES = [
   "achievements",
   "ai_conversations",
   "ai_memory",
+  "ai_actions",
+  "devices",
 ] as const;
 
 export type SyncedTable = (typeof SYNCED_TABLES)[number];
@@ -50,6 +63,8 @@ export const DEXIE_TABLE: Record<SyncedTable, string> = {
   achievements: "achievements",
   ai_conversations: "aiConversations",
   ai_memory: "aiMemory",
+  ai_actions: "aiActions",
+  devices: "devices",
 };
 
 /** Reverse: Dexie table name -> Postgres table. */

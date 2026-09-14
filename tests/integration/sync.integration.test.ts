@@ -318,6 +318,112 @@ d("SyncEngine ↔ Supabase", () => {
     expect(bMem.data).toHaveLength(0);
   }, 20_000);
 
+  it("ai_actions (Phase 15 cloud-sync wiring) round-trips to the cloud and RLS isolates it", async () => {
+    const { aiActionsRepository } = await import("@/lib/db/repositories");
+    const log = await aiActionsRepository.log({
+      kind: "deferTaskToTomorrow",
+      payload: { taskId: crypto.randomUUID() },
+      reason: "لا يتّسع الوقت اليوم",
+      status: "applied",
+      autonomyAtTime: "automatic",
+      source: "reschedule",
+    });
+    await syncEngine.flush();
+
+    const onServer = await admin
+      .from("ai_actions")
+      .select("kind, reason, status, source, autonomy_at_time, user_id")
+      .eq("id", log.id)
+      .single();
+    expect(onServer.error).toBeNull();
+    expect(onServer.data!.kind).toBe("deferTaskToTomorrow");
+    expect(onServer.data!.status).toBe("applied");
+    expect(onServer.data!.source).toBe("reschedule");
+    expect(onServer.data!.user_id).toBe(userA.id);
+
+    // status transition (proposed → applied via confirmAction) also syncs
+    const proposed = await aiActionsRepository.log({
+      kind: "lowerTaskPriority",
+      payload: { taskId: crypto.randomUUID() },
+      reason: "أقل إلحاحًا",
+      status: "proposed",
+      autonomyAtTime: "conservative",
+      source: "assistant",
+    });
+    await syncEngine.flush();
+    await aiActionsRepository.setStatus(proposed.id, "applied");
+    await syncEngine.flush();
+    const updated = await admin.from("ai_actions").select("status").eq("id", proposed.id).single();
+    expect(updated.data?.status).toBe("applied");
+
+    // RLS: user B cannot see user A's action log
+    const bSees = await bClient.from("ai_actions").select("id").eq("id", log.id);
+    expect(bSees.data).toHaveLength(0);
+    // and user B cannot forge an insert stamped with user A's id
+    const forged = await bClient.from("ai_actions").insert({
+      id: crypto.randomUUID(),
+      user_id: userA.id,
+      kind: "deferTaskToTomorrow",
+      reason: "محاولة انتحال",
+      status: "proposed",
+      autonomy_at_time: "automatic",
+      source: "assistant",
+    });
+    expect(forged.error).toBeTruthy();
+  }, 20_000);
+
+  it("devices migration is compatible with the client's cloud plumbing (RLS + rowMapping), even though devicesRepository itself stays write-disabled until this is approved for Production", async () => {
+    // devicesRepository deliberately passes no `entityType` (see
+    // docs/PHASE_10_DEVICES_PLAN.md), so it never enqueues. This test calls
+    // `cloudStore` directly — the same code path CloudStore.push/pull/RLS use
+    // for every other entity — to prove the migration's schema (column names,
+    // RLS policy, trigger) is genuinely compatible with the client today, so
+    // flipping devicesRepository's `entityType` on is the only change needed
+    // once the migration is approved and applied on Production.
+    const { cloudStore } = await import("@/lib/data/CloudStore");
+    const { createSyncMeta } = await import("@/lib/utils/sync");
+
+    const device = {
+      id: crypto.randomUUID(),
+      kind: "web" as const,
+      name: "متصفح الاختبار",
+      platform: "web" as const,
+      pushToken: null,
+      pushProvider: "none" as const,
+      lastSeenAt: new Date().toISOString(),
+      sync: createSyncMeta(),
+    };
+    const pushed = await cloudStore.push("devices" as never, device as never, userA.id);
+    expect(pushed?.id).toBe(device.id);
+
+    const onServer = await admin
+      .from("devices")
+      .select("name, platform, push_provider, user_id")
+      .eq("id", device.id)
+      .single();
+    expect(onServer.error).toBeNull();
+    expect(onServer.data!.name).toBe("متصفح الاختبار");
+    expect(onServer.data!.platform).toBe("web");
+    expect(onServer.data!.push_provider).toBe("none");
+    expect(onServer.data!.user_id).toBe(userA.id);
+
+    const fetched = await cloudStore.getOne("devices" as never, device.id);
+    expect(fetched?.id).toBe(device.id);
+
+    // RLS: user B cannot see user A's device, nor forge one under A's id
+    const bSees = await bClient.from("devices").select("id").eq("id", device.id);
+    expect(bSees.data).toHaveLength(0);
+    const forged = await bClient.from("devices").insert({
+      id: crypto.randomUUID(),
+      user_id: userA.id,
+      kind: "web",
+      name: "جهاز منتحل",
+      platform: "web",
+      push_provider: "none",
+    });
+    expect(forged.error).toBeTruthy();
+  }, 20_000);
+
   it("settings changes sync to profiles.settings", async () => {
     const { settingsRepository } = await import("@/lib/db/repositories");
     await settingsRepository.update({ theme: "light", onboardingCompleted: true });
@@ -403,6 +509,14 @@ d("SyncEngine ↔ Supabase", () => {
       id: leftover, title: "بقايا حساب أ", hasTime: false, priority: "normal", status: "pending", reminders: [],
       sync: { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), deletedAt: null, syncStatus: "pending", remoteId: null, version: 1 },
     });
+    // same simulation for `devices` — a stale device row + a still-queued
+    // mutation for it left over from account A must not leak to B either.
+    const leftoverDevice = crypto.randomUUID();
+    await db.table("devices").put({
+      id: leftoverDevice, kind: "web", name: "جهاز أ القديم", platform: "web",
+      pushToken: null, pushProvider: "none", lastSeenAt: new Date().toISOString(),
+      sync: { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), deletedAt: null, syncStatus: "pending", remoteId: null, version: 1 },
+    });
     localStorage.setItem("routini:sync:account", userA.id);
     localStorage.setItem("routini:sync:pulledOnce", "1");
 
@@ -418,6 +532,15 @@ d("SyncEngine ↔ Supabase", () => {
     const inBCloud = await admin.from("tasks").select("id").eq("id", leftover);
     expect(inBCloud.data).toHaveLength(0);
     expect(localStorage.getItem("routini:sync:account")).toBe(userB.id);
+
+    // same for the leftover device: wiped locally, never reached B's cloud —
+    // and `devices` still works afterward (B's own device auto-registers)
+    const { devicesRepository } = await import("@/lib/db/repositories");
+    expect(await devicesRepository.getById(leftoverDevice)).toBeFalsy();
+    const deviceInBCloud = await admin.from("devices").select("id").eq("id", leftoverDevice);
+    expect(deviceInBCloud.data).toHaveLength(0);
+    const bOwnDevices = await admin.from("devices").select("id").eq("user_id", userB.id);
+    expect(bOwnDevices.data!.length).toBeGreaterThan(0);
 
     // restore A for any later test / afterAll
     await syncEngine.stop();

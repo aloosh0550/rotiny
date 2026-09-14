@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, CloudOff, RefreshCw, RotateCcw, TriangleAlert, X } from "lucide-react";
+import { CheckCircle2, CloudOff, RefreshCw, RotateCcw, Smartphone, TriangleAlert, X } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { SubpageHeader } from "@/components/more/SubpageHeader";
@@ -14,6 +14,8 @@ import {
   reapplyConflict,
   type SyncConflict,
 } from "@/lib/sync/SyncEngine";
+import { devicesRepository } from "@/lib/db/repositories";
+import type { Device } from "@/lib/types";
 import { formatFullDate } from "@/lib/time/dateUtils";
 import { ROUTES } from "@/lib/constants/routes";
 
@@ -27,11 +29,19 @@ export default function SyncSettingsPage() {
   const { configured, user } = useAuth();
   const sync = useSyncState();
   const [conflicts, setConflicts] = useState<SyncConflict[]>(() => getSyncConflicts());
+  const [thisDevice, setThisDevice] = useState<Device | null>(null);
 
   useEffect(() => {
     const id = window.setTimeout(() => setConflicts(getSyncConflicts()), 0);
     return () => window.clearTimeout(id);
   }, [sync.conflicts]);
+
+  useEffect(() => {
+    // Registers (or bumps lastSeenAt for) this install's row, scoped to the
+    // signed-in account when there is one — matches SyncEngine.start()'s
+    // account-scoped id so this doesn't create a second, competing row.
+    void devicesRepository.registerThisDevice(user?.id).then(setThisDevice);
+  }, [user?.id]);
 
   const refresh = () => setConflicts(getSyncConflicts());
 
@@ -81,6 +91,28 @@ export default function SyncSettingsPage() {
                 )}
               </div>
             </Card>
+
+            {thisDevice && (
+              <Card className="flex items-center gap-3">
+                <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-surface-hover text-text-tertiary">
+                  <Smartphone className="size-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-text-primary">
+                    {t("settings.syncThisDevice")}
+                  </p>
+                  <p className="truncate text-xs text-text-tertiary">
+                    {t("settings.syncThisDeviceSubtitle", {
+                      name: thisDevice.name,
+                      date: formatFullDate(new Date(thisDevice.lastSeenAt), locale),
+                    })}
+                  </p>
+                  <p className="text-xs text-text-tertiary">
+                    {t("settings.syncThisDeviceNotSynced")}
+                  </p>
+                </div>
+              </Card>
+            )}
 
             {conflicts.length > 0 && (
               <div className="flex flex-col gap-2">
