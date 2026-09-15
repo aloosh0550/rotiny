@@ -26,6 +26,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import { isSupabaseConfigured } from "@/lib/config/env";
 import { getSupabase } from "@/lib/supabase/client";
 import { isNativePlatform } from "@/lib/native/platform";
+import { computeAuthRedirectUrl } from "@/lib/auth/redirectUrl";
 
 export interface AuthState {
   /** True when Supabase env is present — i.e. cloud mode is possible. */
@@ -50,8 +51,6 @@ const AuthContext = createContext<AuthState>({
   signInWithGoogle: noop,
   signOut: async () => {},
 });
-
-const REDIRECT_PATH = "/auth/callback";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const configured = isSupabaseConfigured();
@@ -82,11 +81,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [configured]);
 
   const value = useMemo<AuthState>(() => {
-    const redirectTo = isNativePlatform()
-      ? `routini://auth/callback`
-      : typeof window !== "undefined"
-        ? `${window.location.origin}${REDIRECT_PATH}`
-        : undefined;
+    // Always the CURRENT page's own origin — Production gets the Production
+    // domain, a preview deployment gets its own preview URL, local dev gets
+    // localhost. Never a hardcoded or statically-configured host.
+    const redirectTo = computeAuthRedirectUrl({
+      isNative: isNativePlatform(),
+      origin: typeof window !== "undefined" ? window.location.origin : undefined,
+    });
 
     return {
       configured,

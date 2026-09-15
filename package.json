@@ -16,7 +16,8 @@
     "icons": "node scripts/generate-icons.mjs",
     "cap:sync": "next build && cap sync android",
     "android:apk": "npm run cap:sync && cd android && ./gradlew assembleDebug",
-    "android:open": "cap open android"
+    "android:open": "cap open android",
+    "prebuild": "node scripts/check-env.mjs"
   },
   "dependencies": {
     "@capacitor/android": "8.5.0",
