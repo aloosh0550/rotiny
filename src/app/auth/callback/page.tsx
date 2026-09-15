@@ -7,11 +7,18 @@ import { useTranslation } from "@/lib/i18n/I18nProvider";
 import { getSupabase } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/config/env";
 import { ROUTES } from "@/lib/constants/routes";
+import { completeAuthCallback } from "@/lib/auth/completeCallback";
 
 /**
  * OAuth / magic-link return target. The Supabase client is created with
  * `detectSessionInUrl: true`, so simply instantiating it here exchanges the
  * `?code=` in the URL for a session. We then wait for that session and route on.
+ *
+ * The polling/exchange logic itself lives in `completeAuthCallback` (unit
+ * tested) — this component only wires it to the URL/router and guarantees a
+ * visible outcome either way. `getSupabase()` failing outright used to leave
+ * this stuck on "completing sign-in…" forever with no error shown; the
+ * try/catch below closes that gap.
  */
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -26,28 +33,22 @@ export default function AuthCallbackPage() {
     let cancelled = false;
 
     void (async () => {
-      const supabase = await getSupabase();
-      if (!supabase) {
-        router.replace(ROUTES.home);
-        return;
-      }
-
-      // detectSessionInUrl runs on creation; also try an explicit exchange for
-      // the ?code= param (harmless if already handled).
-      const url = new URL(window.location.href);
-      if (url.searchParams.get("code")) {
-        await supabase.auth.exchangeCodeForSession(window.location.href).catch(() => {});
-      }
-
-      for (let i = 0; i < 40 && !cancelled; i++) {
-        const { data } = await supabase.auth.getSession();
-        if (data.session) {
-          router.replace(ROUTES.home);
+      try {
+        const supabase = await getSupabase();
+        if (!supabase) {
+          if (!cancelled) router.replace(ROUTES.home);
           return;
         }
-        await new Promise((r) => setTimeout(r, 150));
+
+        const result = await completeAuthCallback(supabase, window.location.href, {
+          isCancelled: () => cancelled,
+        });
+        if (cancelled) return;
+        if (result === "success") router.replace(ROUTES.home);
+        else setFailed(true);
+      } catch {
+        if (!cancelled) setFailed(true);
       }
-      if (!cancelled) setFailed(true);
     })();
 
     return () => {

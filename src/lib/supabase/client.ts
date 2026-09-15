@@ -16,7 +16,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { env, isSupabaseConfigured } from "@/lib/config/env";
 
-let cached: SupabaseClient | null = null;
+// A single in-flight *promise*, not just a resolved value. Several places
+// mount at once (AuthProvider, SyncProvider, and — on /auth/callback
+// specifically — the callback page itself all call this on mount), and the
+// old guard `if (cached) return cached;` only became true AFTER the first
+// caller's `await import(...)` resolved. Two callers racing before that could
+// both see no cached client and each construct their own `createClient()`
+// against the SAME storage key — exactly the "Multiple GoTrueClient
+// instances detected" warning Supabase logs, observed live on the /auth
+// callback page. Caching the promise closes the race: every caller, no
+// matter how many fire in the same tick, awaits the one construction.
+let clientPromise: Promise<SupabaseClient> | null = null;
 
 /**
  * Lazily create (once) and return the Supabase client, or `null` when the
@@ -25,18 +35,20 @@ let cached: SupabaseClient | null = null;
  */
 export async function getSupabase(): Promise<SupabaseClient | null> {
   if (!isSupabaseConfigured()) return null;
-  if (cached) return cached;
-
-  const { createClient } = await import("@supabase/supabase-js");
-  cached = createClient(env.supabaseUrl, env.supabaseAnonKey, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-      flowType: "pkce",
-    },
-  });
-  return cached;
+  if (!clientPromise) {
+    clientPromise = (async () => {
+      const { createClient } = await import("@supabase/supabase-js");
+      return createClient(env.supabaseUrl, env.supabaseAnonKey, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+          flowType: "pkce",
+        },
+      });
+    })();
+  }
+  return clientPromise;
 }
 
 /** Synchronous check for render-time branching. Does not create the client. */
